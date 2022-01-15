@@ -6,6 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.action_chains import ActionChains
 
 chrome_options = webdriver.ChromeOptions()
 
@@ -170,8 +171,10 @@ class NineGagBot(webdriver.Chrome):
             elements.append(articledata)
         return elements
 
-    def scroll(self, amount=500, sleep=0):
-        self.execute_script(f"window.scrollBy(0,{amount})", "")
+    def scroll(self, sleep=0.5):
+        element = self.get_loader_element()
+        actions = ActionChains(self)
+        actions.move_to_element(element).perform()
         time.sleep(sleep)
 
     def get_cover_photo(self, article: WebElement):
@@ -202,17 +205,21 @@ class NineGagBot(webdriver.Chrome):
 
         return cover_photo
 
-    def is_loader_spinning(self):
-
+    def get_loader_element(self) -> WebElement:
         try:
             loader = self.list_view.find_element(
                 By.CSS_SELECTOR, 'div.loading > a'
-            ).get_attribute('class')
+            )
         except NoSuchElementException as e:
             logger.warn('Unable to find loader in list_view' +
                         self.list_view.get_attribute('outerHTML')
                         )
             raise e
+        return loader
+
+    def is_loader_spinning(self):
+
+        loader = self.get_loader_element().get_attribute('class')
 
         if "spin" in loader:
             return True
