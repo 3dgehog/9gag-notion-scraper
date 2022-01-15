@@ -25,6 +25,17 @@ def main():
                 elements = bot.get_elements_from_stream(stream)
 
                 if elements:
+                    for element in elements:
+                        notion.add_gag(
+                            element.name,
+                            element.id,
+                            element.url,
+                            element.post_section,
+                            element.cover_photo
+                        )
+                        elements = None
+                        bot.scroll(sleep=0.1)
+                        stream += 1
                     break
 
                 if not bot.is_loader_spinning():
@@ -32,19 +43,6 @@ def main():
                     return
 
                 bot.scroll(sleep=0.1)
-
-            for element in elements:
-                notion.add_gag(
-                    element.name,
-                    element.id,
-                    element.url,
-                    element.post_section,
-                    element.cover_photo
-                )
-
-            elements = None
-            bot.scroll(sleep=0.1)
-            stream += 1
 
 
 if __name__ == '__main__':

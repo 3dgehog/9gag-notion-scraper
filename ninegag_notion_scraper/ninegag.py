@@ -128,39 +128,44 @@ class NineGagBot(webdriver.Chrome):
         for article in articles:
 
             try:
-                post_section = article.find_element(
-                    By.CSS_SELECTOR, 'article > header > div > p > a.section'
-                ).get_attribute('innerHTML')
-            except NoSuchElementException as e:
-                logger.warn('Unable to find post_section in article' +
-                            article.get_attribute('outerHTML')
-                            )
-                raise e
+                try:
+                    post_section = article.find_element(
+                        By.CSS_SELECTOR,
+                        'article > header > div > p > a.section'
+                    ).get_attribute('innerHTML')
+                except NoSuchElementException as e:
+                    logger.warn('Unable to find post_section in article' +
+                                article.get_attribute('outerHTML')
+                                )
+                    raise e
 
-            if post_section == 'Promoted':
-                logger.debug("Skipping Promoted Post")
+                if post_section == 'Promoted':
+                    logger.debug("Skipping Promoted Post")
+                    continue
+
+                try:
+                    title = article.find_element(
+                        By.CSS_SELECTOR,
+                        'article > header > a')
+                except NoSuchElementException as e:
+                    logger.warn('Unable to find title in article' +
+                                article.get_attribute('outerHTML')
+                                )
+                    raise e
+
+                title_name = title.text
+                title_path = title.get_attribute('href')
+
+                articledata = ArticleData(
+                    title_name,
+                    os.path.basename(title_path),
+                    title_path,
+                    post_section,
+                    cover_photo=self.get_cover_photo(article)
+                )
+            except NoSuchElementException:
+                logger.warn("Skipping Article because of missing element")
                 continue
-
-            try:
-                title = article.find_element(
-                    By.CSS_SELECTOR,
-                    'article > header > a')
-            except NoSuchElementException as e:
-                logger.warn('Unable to find title in article' +
-                            article.get_attribute('outerHTML')
-                            )
-                raise e
-
-            title_name = title.text
-            title_path = title.get_attribute('href')
-
-            articledata = ArticleData(
-                title_name,
-                os.path.basename(title_path),
-                title_path,
-                post_section,
-                cover_photo=self.get_cover_photo(article)
-            )
 
             elements.append(articledata)
         return elements
@@ -193,7 +198,7 @@ class NineGagBot(webdriver.Chrome):
             logger.warn("Unable to find cover photo\n" +
                         article.get_attribute('outerHTML')
                         )
-            raise Exception("Unable to find cover photo")
+            raise NoSuchElementException("Unable to find cover photo")
 
         return cover_photo
 
