@@ -41,7 +41,6 @@ def main():
                     element.post_section,
                     element.cover_photo
                 )
-                pass
 
             elements = None
             bot.scroll(sleep=0.1)

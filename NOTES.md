@@ -17,6 +17,6 @@ Todo:
 [x] Detect the spinner and whether I'm at the end rather than slow loading
 [x] Add the image or video poster on notion 
 [x] log html to file when an error occurs
-[] retry system when notion page wasn't able to create or check
+[x] retry system when notion page wasn't able to create or check
 [] skip post if unable to find elements
 [] Scroll to spinner area when unable to find a stream for 15 scrolls
