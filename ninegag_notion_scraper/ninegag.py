@@ -172,9 +172,10 @@ class NineGagBot(webdriver.Chrome):
         return elements
 
     def scroll(self, sleep=0.5):
-        element = self.get_loader_element()
-        actions = ActionChains(self)
-        actions.move_to_element(element).perform()
+        self.execute_script(f"window.scrollBy(0,{500})", "")
+        # element = self.get_loader_element()
+        # actions = ActionChains(self)
+        # actions.move_to_element(element).perform()
         time.sleep(sleep)
 
     def get_cover_photo(self, article: WebElement):
