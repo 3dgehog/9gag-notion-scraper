@@ -3,6 +3,9 @@
 URL to figure out chrome version: chrome://version
 96.0.4664.110 (Official Build) (arm64)
 
+Get the chromedriver here:
+https://chromedriver.chromium.org/downloads
+
 Currently don't work in headless mode
 
 Selenium browser in docker ref:

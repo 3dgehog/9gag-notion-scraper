@@ -6,7 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.common.action_chains import ActionChains
+# from selenium.webdriver.common.action_chains import ActionChains
 
 chrome_options = webdriver.ChromeOptions()
 
@@ -69,16 +69,16 @@ class NineGagBot(webdriver.Chrome):
         self.get(LOGIN_URL)
         time.sleep(1)
         username_field = self.find_element(
-            By.CSS_SELECTOR, '#login-email-name')
+            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(3) > input[type=text]') # noqa
         password_field = self.find_element(
-            By.CSS_SELECTOR, '#login-email-password')
+            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(4) > input[type=password]') # noqa
         username_field.clear()
         password_field.clear()
         username_field.send_keys(USERNAME)
         password_field.send_keys(PASSWORD)
         login_button = self.find_element(
             By.CSS_SELECTOR,
-            '#signup > div > div.uikit-signup__body > form > div:nth-child(4) > input'  # noqa
+            '#signup > form > div > button.ui-btn.btn-color-primary.login-view__login'  # noqa
         )
         login_button.click()
         time.sleep(1)
