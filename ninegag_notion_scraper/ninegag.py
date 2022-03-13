@@ -6,7 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
-# from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.action_chains import ActionChains
 
 chrome_options = webdriver.ChromeOptions()
 
@@ -171,11 +171,14 @@ class NineGagBot(webdriver.Chrome):
             elements.append(articledata)
         return elements
 
-    def scroll(self, sleep=0.5):
-        self.execute_script(f"window.scrollBy(0,{500})", "")
-        # element = self.get_loader_element()
-        # actions = ActionChains(self)
-        # actions.move_to_element(element).perform()
+    def scroll(self, sleep=0.5, scroll=500):
+        self.execute_script(f"window.scrollBy(0,{scroll})", "")
+        time.sleep(sleep)
+
+    def scroll_to_spinner(self, sleep=1):
+        element = self.get_loader_element()
+        actions = ActionChains(self)
+        actions.move_to_element(element).perform()
         time.sleep(sleep)
 
     def get_cover_photo(self, article: WebElement):

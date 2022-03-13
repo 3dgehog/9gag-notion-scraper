@@ -33,16 +33,15 @@ def main():
                             element.post_section,
                             element.cover_photo
                         )
-                        elements = None
-                        bot.scroll(sleep=0.1)
-                        stream += 1
-                    break
+                    elements = None
+                    bot.scroll_to_spinner(sleep=1)
+                    stream += 1
 
                 if not bot.is_loader_spinning():
                     logger.info('Reached the bottom')
                     return
 
-                bot.scroll(sleep=0.1)
+                # bot.scroll(sleep=0.1)
 
 
 if __name__ == '__main__':
