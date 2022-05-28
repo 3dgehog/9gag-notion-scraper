@@ -1,6 +1,7 @@
 import time
 import os
 import logging
+import pickle
 from dataclasses import dataclass
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,10 +15,12 @@ chrome_options = webdriver.ChromeOptions()
 # image_prefs = {"profile.managed_default_content_settings.images": 2}
 # chrome_options.add_experimental_option("prefs", image_prefs)
 
-# Headless
-# chrome_options.add_argument('headless')
-
 logger = logging.getLogger('app.9gag')
+
+# Headless
+if os.getenv('HEADLESS'):
+    chrome_options.add_argument('headless')
+    chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
 
 NINEGAG_URL = os.environ['9GAG_URL']
 LOGIN_URL = 'https://9gag.com/login'
@@ -26,6 +29,8 @@ USERNAME = os.environ['USERNAME']
 PASSWORD = os.environ['PASSWORD']
 
 DEFAULT_IMPLICITY_WAIT = 1
+
+PICKLE_COOKIES = "cookies.pkl"
 
 
 class NineGagBot(webdriver.Chrome):
@@ -39,12 +44,21 @@ class NineGagBot(webdriver.Chrome):
         self.implicitly_wait(DEFAULT_IMPLICITY_WAIT)
         self._list_view_element = None
 
+    def _load_cookies(self):
+        if os.path.exists(PICKLE_COOKIES):
+            cookies = pickle.load(open(PICKLE_COOKIES, "rb"))
+            for cookie in cookies:
+                self.add_cookie(cookie)
+
     def __exit__(self, *args) -> None:
         self.quit()
         logger.debug("Exiting Browser")
         return super().__exit__(*args)
 
     def landing_page(self):
+        # preload needed to load cookies...
+        self.get(self.url)
+        self._load_cookies()
         self.get(self.url)
         if not self.login_flag:
             if not self.is_logged_in():
@@ -84,6 +98,7 @@ class NineGagBot(webdriver.Chrome):
         time.sleep(1)
         self.attempted_login_flag = True
         self.is_logged_in()
+        pickle.dump(self.get_cookies(), open(PICKLE_COOKIES, "wb"))
         self.landing_page()
 
     @property

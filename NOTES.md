@@ -24,4 +24,6 @@ pipenv run app
 - [x] log html to file when an error occurs
 - [x] retry system when notion page wasn't able to create or check
 - [x] skip post if unable to find elements
-- [X] ~~Scroll to spinner area when unable to find a stream for 15 scrolls~~ All scrolls now scrolls to loader element
+- [x] ~~Scroll to spinner area when unable to find a stream for 15 scrolls~~ All scrolls now scrolls to loader element
+- [x] Remember session (prevents logining in over and over)
+- [x] headless
