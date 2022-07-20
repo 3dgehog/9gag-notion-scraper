@@ -17,6 +17,10 @@ chrome_options = webdriver.ChromeOptions()
 
 logger = logging.getLogger('app.9gag')
 
+# temp_driver = webdriver.Chrome()
+# print(temp_driver.capabilities['chrome']['chromedriverVersion'])
+# exit
+
 # Headless
 if os.getenv('HEADLESS'):
     chrome_options.add_argument('headless')
@@ -83,9 +87,9 @@ class NineGagBot(webdriver.Chrome):
         self.get(LOGIN_URL)
         time.sleep(1)
         username_field = self.find_element(
-            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(3) > input[type=text]') # noqa
+            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(3) > input[type=text]')  # noqa
         password_field = self.find_element(
-            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(4) > input[type=password]') # noqa
+            By.CSS_SELECTOR, '#signup > form > div > div:nth-child(4) > input[type=password]')  # noqa
         username_field.clear()
         password_field.clear()
         username_field.send_keys(USERNAME)
@@ -145,10 +149,15 @@ class NineGagBot(webdriver.Chrome):
 
             try:
                 try:
-                    post_section = article.find_element(
+                    post_section_elements = article.find_elements(
                         By.CSS_SELECTOR,
-                        'article > header > div > p > a.section'
-                    ).get_attribute('innerHTML')
+                        # 'article > header > div > p > a.section'
+                        'article > div.post-tag.listview > a'
+                    )
+                    post_section = [
+                        x.get_attribute('innerHTML')
+                        for x in post_section_elements
+                    ]
                 except NoSuchElementException as e:
                     logger.warn('Unable to find post_section in article' +
                                 article.get_attribute('outerHTML')
@@ -256,7 +265,7 @@ class ArticleData:
     name: str
     id: str
     url: str
-    post_section: str
+    post_section: list
     cover_photo: str
 
     def __post_init__(self):

@@ -32,6 +32,10 @@ def _validate_multi_select(data: str):
     return data.replace(',', '')
 
 
+def _expand_multi_select(data: list):
+    return [{"name": _validate_multi_select(x)} for x in data]
+
+
 def _create_page(name, id, url, post_section, cover_photo):
     client.pages.create(
         parent={"database_id": NOTION_DATABASE},
@@ -61,9 +65,7 @@ def _create_page(name, id, url, post_section, cover_photo):
                 }]
             },
             "Post Section": {
-                "multi_select": [{
-                    "name": _validate_multi_select(post_section)
-                }]
+                "multi_select": _expand_multi_select(post_section)
             }
         }
     )
