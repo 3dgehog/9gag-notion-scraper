@@ -1,4 +1,5 @@
 import logging
+from dotenv import load_dotenv
 
 logger = logging.getLogger('app')
 logger.setLevel(logging.DEBUG)
@@ -17,3 +18,5 @@ error_file_handler.setFormatter(
 
 logger.addHandler(console_handler)
 logger.addHandler(error_file_handler)
+
+load_dotenv()

@@ -1,17 +1,23 @@
 import os
 import logging
 
+from notion_client import Client
+
 from .ninegag import NineGagBot
-from . import notion
+from .notion import Notion
 
 os.environ['PATH'] += r":/Users/maxence/Projects/9gag-notion-scraper"
 
 START_STREAM = os.environ['START_STREAM']
 
+NOTION_TOKEN = os.environ["NOTION_TOKEN"]
+NOTION_DATABASE = os.environ["NOTION_DATABASE"]
+
 logger = logging.getLogger('app')
 
 
 def main():
+    notion = Notion(Client(auth=NOTION_TOKEN), NOTION_DATABASE)
     with NineGagBot() as bot:
         bot.landing_page()
 

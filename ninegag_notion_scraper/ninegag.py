@@ -44,7 +44,7 @@ class NineGagBot(webdriver.Chrome):
         self.at_bottom_flag = False
         self.login_flag = False
         self.attempted_login_flag = False
-        super().__init__(chrome_options=chrome_options)
+        super().__init__(options=chrome_options)
         self.implicitly_wait(DEFAULT_IMPLICITY_WAIT)
         self._list_view_element = None
 

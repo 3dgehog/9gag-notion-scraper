@@ -6,13 +6,15 @@ name = "pypi"
 [packages]
 selenium = "*"
 notion-client = "*"
+python-dotenv = "*"
 
 [dev-packages]
 flake8 = "*"
 autopep8 = "*"
+mypy = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.11.3"
 
 [scripts]
 app = "python -m ninegag_notion_scraper"
