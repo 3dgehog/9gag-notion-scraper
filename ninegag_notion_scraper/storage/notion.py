@@ -3,6 +3,7 @@
 import logging
 import time
 import traceback
+from typing import Awaitable
 from notion_client import Client
 from .base import StorageBase
 
@@ -24,7 +25,11 @@ class NotionTools(StorageBase):
                     "equals": item_id
                 }
             })
-        if len(query['results']) >= 1:
+
+        assert not isinstance(query, Awaitable)
+        results: list = query.get('results')
+
+        if len(results) >= 1:
             logger.debug("ID %s already exists", item_id)
             return True
         logger.debug("ID %s doesn't exists", item_id)

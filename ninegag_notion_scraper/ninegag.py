@@ -40,9 +40,9 @@ WEB_DRIVER = webdriver.Chrome(options=chrome_options)
 @dataclass
 class ArticleData:
     name: str
-    id: str
+    item_id: str
     url: str
-    post_section: list
+    tags: list
     cover_photo: str
 
     def __post_init__(self):
@@ -176,9 +176,9 @@ class NineGagTools:
 
                 articledata = ArticleData(
                     name=self._get_title_from_article(article),
-                    id=os.path.basename(url),
+                    item_id=os.path.basename(url),
                     url=url,
-                    post_section=tags,
+                    tags=tags,
                     cover_photo=self._get_cover_photo_from_article(article)
                 )
             except NoSuchElementException:
@@ -216,7 +216,7 @@ class NineGagTools:
         try:
             tags_element = article.find_elements(
                 By.CSS_SELECTOR,
-                'article > div.post-tag.listview > a'
+                'article > div.post-tags > a'
             )
             tags = [
                 x.get_attribute('innerHTML')

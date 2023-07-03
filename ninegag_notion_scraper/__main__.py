@@ -23,9 +23,9 @@ logger = logging.getLogger('app')
 class MemeData(Protocol):
     """Data required from a meme"""
     name: str
-    id: str
+    item_id: str
     url: str
-    post_section: list
+    tags: list
     cover_photo: str
 
 
@@ -75,9 +75,9 @@ def memes_from_9gag_to_notion_with_local_save(
             for element in elements:
                 notion.add_gag(
                     name=element.name,
-                    item_id=element.id,
+                    item_id=element.item_id,
                     url=element.url,
-                    post_section=element.post_section,
+                    post_section=element.tags,
                     cover_photo=element.cover_photo
                 )
                 # storage.save_cover_from_url(
