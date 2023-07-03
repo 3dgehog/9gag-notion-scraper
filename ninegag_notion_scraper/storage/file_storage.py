@@ -24,8 +24,8 @@ class FileStorage(StorageBase):
         self._meme_path = os.path.join(self._path, MEME_PATH)
         self._covers_path = os.path.join(self._path, COVERS_PATH)
 
-    def exists(self, item_id: str) -> str:
-        return "Hello"
+    def exists(self, item_id: str) -> bool:
+        return True
 
     def save_meme_from_url(self, url: str, file_id: str):
         """Save memes from a url"""

@@ -4,9 +4,11 @@ import os
 import logging
 from typing import List, Optional, Protocol
 from notion_client import Client as NotionClient
-from .ninegag import NineGagTools
+
+from .scrapers.ninegag import NineGagTools
 from .storage.notion import NotionTools
 from .storage.file_storage import FileStorage
+from .entities import Meme
 
 os.environ['PATH'] += r":/Users/maxence/Projects/9gag-notion-scraper"
 
@@ -20,15 +22,6 @@ NINEGAG_URL = os.environ['9GAG_URL']
 logger = logging.getLogger('app')
 
 
-class MemeData(Protocol):
-    """Data required from a meme"""
-    name: str
-    item_id: str
-    url: str
-    tags: list
-    cover_photo: str
-
-
 class MemeScrapperProtocol(Protocol):
     """Protocol for interaction needed on the meme site"""
     at_bottom_flag: bool
@@ -40,10 +33,7 @@ class MemeScrapperProtocol(Protocol):
 
     def __exit__(self, exception_type, exception_value, traceback): ...
 
-    def setup(self):
-        """Setup everything needed as well as to go the root url"""
-
-    def get_memes(self) -> List[MemeData]:
+    def get_memes(self) -> List[Meme]:
         """Get all memes from the current place on the page"""
 
     def next_page(self) -> Optional[int]:
@@ -66,7 +56,7 @@ def memes_from_9gag_to_notion_with_local_save(
 
     with ninegag:
 
-        elements: List[MemeData]
+        elements: List[Meme]
 
         # Waiting until next stream is detected or the spinner ends
         while not ninegag.at_bottom_flag:
@@ -74,11 +64,11 @@ def memes_from_9gag_to_notion_with_local_save(
 
             for element in elements:
                 notion.add_gag(
-                    name=element.name,
+                    name=element.title,
                     item_id=element.item_id,
-                    url=element.url,
+                    url=element.post_web_url,
                     post_section=element.tags,
-                    cover_photo=element.cover_photo
+                    cover_photo=element.cover_photo_url
                 )
                 # storage.save_cover_from_url(
                 #     element.cover_photo,

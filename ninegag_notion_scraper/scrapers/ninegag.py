@@ -3,13 +3,13 @@ import time
 import os
 import logging
 import pickle
-from dataclasses import dataclass
 from typing import List
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
+from ninegag_notion_scraper.entities import Meme
 
 chrome_options = webdriver.ChromeOptions()
 
@@ -35,18 +35,6 @@ DEFAULT_IMPLICITY_WAIT = 1
 PICKLE_COOKIES = "cookies.pkl"
 
 WEB_DRIVER = webdriver.Chrome(options=chrome_options)
-
-
-@dataclass
-class ArticleData:
-    name: str
-    item_id: str
-    url: str
-    tags: list
-    cover_photo: str
-
-    def __post_init__(self):
-        logger.debug("Created %s", self)
 
 
 class NineGagTools:
@@ -153,7 +141,7 @@ class NineGagTools:
 
         return list_view
 
-    def get_memes(self) -> List[ArticleData]:
+    def get_memes(self) -> List[Meme]:
         """Return memes from current stream"""
         if self.at_bottom_flag:
             logger.warning("Reached the bottom, no more memes to give")
@@ -174,12 +162,14 @@ class NineGagTools:
 
                 url = self._get_url_from_article(article)
 
-                articledata = ArticleData(
-                    name=self._get_title_from_article(article),
+                articledata = Meme(
+                    title=self._get_title_from_article(article),
                     item_id=os.path.basename(url),
-                    url=url,
+                    post_web_url=url,
                     tags=tags,
-                    cover_photo=self._get_cover_photo_from_article(article)
+                    cover_photo_url=self._get_cover_photo_from_article(
+                        article),
+                    post_file_url=self._get_file_url_from_article(article)
                 )
             except NoSuchElementException:
                 logger.warning("Skipping Article because of missing element")
@@ -284,6 +274,46 @@ class NineGagTools:
 
         assert url
         return url
+
+    def _get_file_url_from_article(self, article: WebElement) -> str:
+        try:
+            post_view_element = article.find_element(
+                By.CLASS_NAME, 'post-view')
+        except NoSuchElementException as error:
+            logger.warning('Unable to find post_view in article %s',
+                           article.get_attribute('outerHTML')
+                           )
+            raise error
+
+        video_url = None
+        image_url = None
+
+        try:
+            video_url = post_view_element.find_element(
+                By.XPATH,
+                "video/source[@type='video/mp4']").get_attribute('src')
+        except NoSuchElementException:
+            pass
+
+        try:
+            image_url = post_view_element.find_element(
+                By.XPATH,
+                "picture/img").get_attribute('src')
+        except NoSuchElementException:
+            pass
+
+        if not video_url and not image_url:
+            logger.warning('Unable to find image or video in post view')
+            raise NoSuchElementException
+        if video_url and image_url:
+            logger.warning('Found both an image and a video... not possible')
+            raise ValueError
+
+        if video_url:
+            return video_url
+        else:
+            assert image_url
+            return image_url
 
     def next_page(self, **kwargs) -> int:
         """Goes to the next stream"""
