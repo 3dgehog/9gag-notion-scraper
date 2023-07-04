@@ -4,7 +4,7 @@ from urllib.request import urlretrieve
 from urllib.parse import urlparse
 import validators
 import requests
-from .base import StorageBase
+from ninegag_notion_scraper.entities import Meme
 
 COVERS_PATH = "covers"
 MEME_PATH = "memes"
@@ -16,7 +16,7 @@ class URLItems:
     file_extension: str
 
 
-class FileStorage(StorageBase):
+class FileStorage:
     """A class to save items locally on the file system"""
 
     def __init__(self, path: str) -> None:
@@ -24,17 +24,18 @@ class FileStorage(StorageBase):
         self._meme_path = os.path.join(self._path, MEME_PATH)
         self._covers_path = os.path.join(self._path, COVERS_PATH)
 
-    def exists(self, item_id: str) -> bool:
-        return True
+    def save_meme(self, meme: Meme) -> None:
+        self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
+        self._save_meme_from_url(meme.post_file_url, meme.item_id)
 
-    def save_meme_from_url(self, url: str, file_id: str):
+    def _save_meme_from_url(self, url: str, file_id: str):
         """Save memes from a url"""
         self._validate_url(url)
         url_item = self._url_items(url)
         urlretrieve(url, os.path.join(self._meme_path,
                     file_id + url_item.file_extension))
 
-    def save_cover_from_url(self, url: str, file_id: str):
+    def _save_cover_from_url(self, url: str, file_id: str):
         """Save covers from a url"""
         self._validate_url(url)
         url_item = self._url_items(url)

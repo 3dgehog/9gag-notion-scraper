@@ -5,13 +5,14 @@ import time
 import traceback
 from typing import Awaitable
 from notion_client import Client
-from .base import StorageBase
+
+from ninegag_notion_scraper.entities import Meme
 
 
 logger = logging.getLogger("app.notion")
 
 
-class NotionTools(StorageBase):
+class NotionTools:
     def __init__(self, client: Client, database_id: str) -> None:
         self._client = client
         self._db_id = database_id
@@ -74,6 +75,10 @@ class NotionTools(StorageBase):
                 }
             }
         )
+
+    def save_meme(self, meme: Meme) -> None:
+        self.add_gag(meme.title, meme.item_id, meme.post_web_url,
+                     meme.tags, meme.cover_photo_url)
 
     def add_gag(self, name, item_id, url, post_section, cover_photo,
                 max_retries=5, timeout=30, timeout_multiply=2):

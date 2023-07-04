@@ -40,6 +40,10 @@ class MemeScrapperProtocol(Protocol):
         """Goes to the next set of memes"""
 
 
+class MemeStorageProtocol(Protocol):
+    def save_meme(self, meme: Meme) -> None: ...
+
+
 def main():
     """The entry point to the application"""
     memes_from_9gag_to_notion_with_local_save(
@@ -51,29 +55,20 @@ def main():
 
 def memes_from_9gag_to_notion_with_local_save(
         ninegag: MemeScrapperProtocol,
-        notion: NotionTools,
-        storage: FileStorage) -> None:
+        notion: MemeStorageProtocol,
+        storage: MemeStorageProtocol) -> None:
 
     with ninegag:
 
-        elements: List[Meme]
+        memes: List[Meme]
 
         # Waiting until next stream is detected or the spinner ends
         while not ninegag.at_bottom_flag:
-            elements = ninegag.get_memes()
+            memes = ninegag.get_memes()
 
-            for element in elements:
-                notion.add_gag(
-                    name=element.title,
-                    item_id=element.item_id,
-                    url=element.post_web_url,
-                    post_section=element.tags,
-                    cover_photo=element.cover_photo_url
-                )
-                # storage.save_cover_from_url(
-                #     element.cover_photo,
-                #     element.id
-                # )
+            for meme in memes:
+                notion.save_meme(meme)
+                storage.save_meme(meme)
             ninegag.next_page()
 
 
