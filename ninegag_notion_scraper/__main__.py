@@ -19,6 +19,8 @@ NINEGAG_USERNAME = os.environ['USERNAME']
 NINEGAG_PASSWORD = os.environ['PASSWORD']
 NINEGAG_URL = os.environ['9GAG_URL']
 
+PERSONAL_URL = "172.30.0.10:5000/WebDAV/9gag-memes"
+
 logger = logging.getLogger('app')
 
 
@@ -41,7 +43,7 @@ class MemeScrapperProtocol(Protocol):
 
 
 class MemeStorageProtocol(Protocol):
-    def save_meme(self, meme: Meme) -> None: ...
+    def save_meme(self, meme: Meme, **kwargs) -> None: ...
 
 
 def main():
@@ -67,8 +69,8 @@ def memes_from_9gag_to_notion_with_local_save(
             memes = ninegag.get_memes()
 
             for meme in memes:
-                notion.save_meme(meme)
                 storage.save_meme(meme)
+                notion.save_meme(meme, options={"update": True})
             ninegag.next_page()
 
 

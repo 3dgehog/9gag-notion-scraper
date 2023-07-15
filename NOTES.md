@@ -27,3 +27,8 @@ pipenv run app
 - [x] ~~Scroll to spinner area when unable to find a stream for 15 scrolls~~ All scrolls now scrolls to loader element
 - [x] Remember session (prevents logining in over and over)
 - [x] headless
+- [x] Save meme to a folder
+- [x] Check notion database uses correct properties
+- [ ] Give notion the ability to update an existing meme
+- [ ] Add a peronal WebDAV link to notion page
+- [ ] Detected when logged out again (like page can be accessed without logging in)

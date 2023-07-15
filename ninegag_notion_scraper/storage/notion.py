@@ -1,9 +1,10 @@
 """A class that handles all the operations on Notion"""
 
+from enum import Enum
 import logging
 import time
 import traceback
-from typing import Awaitable
+from typing import Awaitable, Optional
 from notion_client import Client
 
 from ninegag_notion_scraper.entities import Meme
@@ -12,16 +13,44 @@ from ninegag_notion_scraper.entities import Meme
 logger = logging.getLogger("app.notion")
 
 
+class Properties(Enum):
+    EXTERNAL_REF = {"name": "9gag id", "type": "rich_text"}
+    EXTERNAL_URL = {"name": "URL", "type": "url"}
+    TAGS = {"name": "Post Section", "type": "multi_select"}
+
+
 class NotionTools:
     def __init__(self, client: Client, database_id: str) -> None:
         self._client = client
         self._db_id = database_id
+        self._validate_database(database_id)
+
+    def _validate_database(self, database_id: str) -> None:
+        db = self._client.databases.retrieve(database_id)
+        assert isinstance(db, dict)
+
+        def compare_dictionaries(dict1, dict2):
+            for key, value in dict2.items():
+                if key not in dict1 or dict1[key] != value:
+                    return False
+            return True
+
+        # Validate if all Properties exists in database
+        for enum_item_dict in [x.value for x in Properties]:
+            valid = False
+            for db_prop_dict in [x for x in db["properties"].values()]:
+                if compare_dictionaries(db_prop_dict, enum_item_dict):
+                    valid = True
+                    break
+            if not valid:
+                raise ValueError(
+                    f"Property {enum_item_dict} is missing in database")
 
     def exists(self, item_id: str) -> bool:
         query = self._client.databases.query(
             database_id=self._db_id,
             filter={
-                "property": "9gag id",
+                "property": Properties.EXTERNAL_REF.value['name'],
                 "rich_text": {
                     "equals": item_id
                 }
@@ -59,10 +88,10 @@ class NotionTools:
                         }
                     }]
                 },
-                "URL": {
+                Properties.EXTERNAL_URL.value['name']: {
                     "url": url
                 },
-                "9gag id": {
+                Properties.EXTERNAL_REF.value['name']: {
                     "rich_text": [{
                         "type": "text",
                         "text": {
@@ -70,13 +99,13 @@ class NotionTools:
                         }
                     }]
                 },
-                "Post Section": {
+                Properties.TAGS.value['name']: {
                     "multi_select": self._expand_multi_select(post_section)
                 }
             }
         )
 
-    def save_meme(self, meme: Meme) -> None:
+    def save_meme(self, meme: Meme, options: Optional[dict] = None) -> None:
         self.add_gag(meme.title, meme.item_id, meme.post_web_url,
                      meme.tags, meme.cover_photo_url)
 
