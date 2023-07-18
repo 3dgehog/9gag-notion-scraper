@@ -29,6 +29,6 @@ pipenv run app
 - [x] headless
 - [x] Save meme to a folder
 - [x] Check notion database uses correct properties
-- [ ] Give notion the ability to update an existing meme
+- [x] Give notion the ability to update an existing meme
 - [ ] Add a peronal WebDAV link to notion page
 - [ ] Detected when logged out again (like page can be accessed without logging in)
