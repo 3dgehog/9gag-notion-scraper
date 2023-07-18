@@ -9,11 +9,13 @@ notion-client = "*"
 python-dotenv = "*"
 validators = "*"
 requests = "*"
+retry = "*"
 
 [dev-packages]
 autopep8 = "*"
 mypy = "*"
 types-requests = "*"
+types-retry = "*"
 
 [requires]
 python_version = "3.11.4"

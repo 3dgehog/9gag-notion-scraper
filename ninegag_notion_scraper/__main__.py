@@ -70,7 +70,7 @@ def memes_from_9gag_to_notion_with_local_save(
 
             for meme in memes:
                 storage.save_meme(meme)
-                notion.save_meme(meme, options={"update": True})
+                notion.save_meme(meme, update=True)
             ninegag.next_page()
 
 
