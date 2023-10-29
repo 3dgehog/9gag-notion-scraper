@@ -4,7 +4,9 @@ from urllib.request import urlretrieve
 from urllib.parse import urlparse
 import validators
 import requests
-from ninegag_notion_scraper.entities import Meme
+
+from ninegag_notion_scraper.scrapers.entities import Meme
+from . import AbstractStorageRepo
 
 COVERS_PATH = "covers"
 MEME_PATH = "memes"
@@ -16,7 +18,7 @@ class URLItems:
     file_extension: str
 
 
-class FileStorage:
+class FileStorageRepo(AbstractStorageRepo):
     """A class to save items locally on the file system"""
 
     def __init__(self, path: str) -> None:
@@ -24,7 +26,7 @@ class FileStorage:
         self._meme_path = os.path.join(self._path, MEME_PATH)
         self._covers_path = os.path.join(self._path, COVERS_PATH)
 
-    def save_meme(self, meme: Meme) -> None:
+    def save_meme(self, meme: Meme, *args) -> None:
         self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
         self._save_meme_from_url(meme.post_file_url, meme.item_id)
 

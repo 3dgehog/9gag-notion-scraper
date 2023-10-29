@@ -1,4 +1,3 @@
-"""9GAG"""
 import time
 import os
 import logging
@@ -9,7 +8,10 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
-from ninegag_notion_scraper.entities import Meme
+
+from ..entities import Meme
+from . import AbstractScraperRepo
+
 
 chrome_options = webdriver.ChromeOptions()
 
@@ -42,7 +44,7 @@ WEB_DRIVER = webdriver.Chrome(options=chrome_options)
 # )
 
 
-class NineGagTools:
+class NineGagScraperRepo(AbstractScraperRepo):
     """A class that handles all the web scraping on 9gag"""
 
     def __init__(self, url: str, username: str, password: str) -> None:
