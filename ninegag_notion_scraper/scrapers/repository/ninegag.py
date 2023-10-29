@@ -43,6 +43,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
         self.web_driver.implicitly_wait(DEFAULT_IMPLICITY_WAIT)
 
     def _setup(self, url: str):
+        self.web_driver.get(url)
         self._load_cookies()
         self.web_driver.get(url)
 
