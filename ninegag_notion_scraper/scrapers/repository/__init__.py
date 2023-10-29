@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import List
 
 from ..entities import Meme
 
 
+@dataclass
 class AbstractScraperRepo(ABC):
-    at_bottom_flag: bool
+    at_bottom: bool
 
     @abstractmethod
     def get_memes(self) -> List[Meme]:

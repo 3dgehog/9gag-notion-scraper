@@ -43,7 +43,7 @@ def memes_from_9gag_to_notion_with_local_save(
         memes: List[Meme]
 
         # Waiting until next stream is detected or the spinner ends
-        while not ninegag.at_bottom_flag:
+        while not ninegag.at_bottom:
             memes = ninegag.get_memes()
 
             for meme in memes:

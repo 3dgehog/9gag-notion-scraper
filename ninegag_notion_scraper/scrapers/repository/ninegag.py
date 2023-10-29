@@ -52,8 +52,9 @@ class NineGagScraperRepo(AbstractScraperRepo):
         self.username = username
         self.password = password
         self.web_driver = WEB_DRIVER
-        self.at_bottom_flag = False
+        self.at_bottom = False
 
+        self._at_bottom_flag = self.at_bottom
         self._login_flag = False
         self._attempted_login_flag = False
         self._list_view: WebElement
@@ -176,7 +177,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
     def get_memes(self) -> List[Meme]:
         """Return memes from current stream"""
-        if self.at_bottom_flag:
+        if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more memes to give")
             return []
 
@@ -350,7 +351,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
     def next_page(self, **kwargs) -> int:
         """Goes to the next stream"""
-        if self.at_bottom_flag:
+        if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more pages")
             return self._current_stream_num
 
@@ -358,7 +359,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
         self._scroll_to_spinner(**kwargs)
 
         if not self._is_loader_spinning():
-            self.at_bottom_flag = True
+            self._at_bottom_flag = True
 
         return self._current_stream_num
 
