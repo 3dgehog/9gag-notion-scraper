@@ -4,6 +4,8 @@ A small tool that takes a 9gag stream and translates it to a notion database
 
 ## Setup
 
+Download chrome driver from: https://googlechromelabs.github.io/chrome-for-testing/
+
 **Required ENV**
 
 A  Notion API Token

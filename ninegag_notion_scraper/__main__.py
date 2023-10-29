@@ -10,8 +10,6 @@ from .storage.notion import NotionTools
 from .storage.file_storage import FileStorage
 from .entities import Meme
 
-os.environ['PATH'] += r":/Users/maxence/Projects/9gag-notion-scraper"
-
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 NOTION_DATABASE = os.environ["NOTION_DATABASE"]
 

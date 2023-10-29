@@ -24,9 +24,9 @@ logger = logging.getLogger('app.9gag')
 # exit
 
 # Headless
-if os.environ.get('HEADLESS'):
-    chrome_options.add_argument('headless')
-    chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
+# if os.environ.get('HEADLESS'):
+#     chrome_options.add_argument('headless')
+#     chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
 
 LOGIN_URL = 'https://9gag.com/login'
 
@@ -35,6 +35,11 @@ DEFAULT_IMPLICITY_WAIT = 1
 PICKLE_COOKIES = "cookies.pkl"
 
 WEB_DRIVER = webdriver.Chrome(options=chrome_options)
+
+# WEB_DRIVER = webdriver.Remote(
+#     command_executor='http://172.30.0.4:4444',
+#     options=chrome_options
+# )
 
 
 class NineGagTools:
@@ -54,15 +59,16 @@ class NineGagTools:
 
         self.web_driver.implicitly_wait(DEFAULT_IMPLICITY_WAIT)
 
-        self._setup(url)
-
     def _setup(self, url: str):
         self._load_cookies()
         self.web_driver.get(url)
 
+        self._accept_cookie_dialog()
+
         if not self._login_flag:
             if not self._is_logged_in():
                 self._login()
+                self.web_driver.get(url)
 
         self._list_view = self._get_list_view()
 
@@ -73,16 +79,40 @@ class NineGagTools:
             for cookie in cookies:
                 self.web_driver.add_cookie(cookie)
 
+    def _accept_cookie_dialog(self):
+        try:
+            dialog = self.web_driver.find_element(
+                By.CSS_SELECTOR, '#qc-cmp2-ui')
+        except NoSuchElementException:
+            return
+
+        accept_button = dialog.find_element(
+            By.CSS_SELECTOR,
+            'div.qc-cmp2-footer.qc-cmp2-footer-overlay.qc-cmp2-footer-scrolled'
+            ' > div > button.css-1k47zha')
+        accept_button.click()
+
     def __enter__(self):
+        self._setup(self.url)
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         self.web_driver.quit()
 
     def _is_logged_in(self):
-        title = self.web_driver.find_element(
+        title_based = self.web_driver.find_element(
             By.XPATH, '/html/head/title').get_attribute('innerHTML')
-        if title == "9GAG - 404 Nothing here":
+        if title_based == "9GAG - 404 Nothing here":
+            self._login_flag = False
+            logger.debug("Detected you are NOT logged in")
+            if self._attempted_login_flag:
+                raise RuntimeError("Wasn't able to login... Help")
+            return False
+        top_nav_based = self.web_driver.find_element(
+            By.CSS_SELECTOR,
+            '#top-nav > div > div > '
+            'div.visitor-function').get_attribute('style')
+        if top_nav_based == "":
             self._login_flag = False
             logger.debug("Detected you are NOT logged in")
             if self._attempted_login_flag:
@@ -115,7 +145,8 @@ class NineGagTools:
 
         login_button = self.web_driver.find_element(
             By.CSS_SELECTOR,
-            '#signup > form > div > button.ui-btn.btn-color-primary.login-view__login'  # noqa
+            '#signup > form > div > button.ui-btn.'
+            'btn-color-primary.login-view__login'
         )
 
         login_button.click()
