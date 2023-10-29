@@ -3,32 +3,18 @@ import os
 import logging
 import pickle
 from typing import List
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
 from ..entities import Meme
 from . import AbstractScraperRepo
 
 
-chrome_options = webdriver.ChromeOptions()
-
-# Disable images loaded
-# image_prefs = {"profile.managed_default_content_settings.images": 2}
-# chrome_options.add_experimental_option("prefs", image_prefs)
-
 logger = logging.getLogger('app.9gag')
 
-# temp_driver = webdriver.Chrome()
-# print(temp_driver.capabilities['chrome']['chromedriverVersion'])
-# exit
-
-# Headless
-# if os.environ.get('HEADLESS'):
-#     chrome_options.add_argument('headless')
-#     chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
 
 LOGIN_URL = 'https://9gag.com/login'
 
@@ -36,22 +22,16 @@ DEFAULT_IMPLICITY_WAIT = 1
 
 PICKLE_COOKIES = "cookies.pkl"
 
-WEB_DRIVER = webdriver.Chrome(options=chrome_options)
-
-# WEB_DRIVER = webdriver.Remote(
-#     command_executor='http://172.30.0.4:4444',
-#     options=chrome_options
-# )
-
 
 class NineGagScraperRepo(AbstractScraperRepo):
     """A class that handles all the web scraping on 9gag"""
 
-    def __init__(self, url: str, username: str, password: str) -> None:
+    def __init__(self, url: str, username: str, password: str,
+                 web_driver: WebDriver) -> None:
         self.url = url
         self.username = username
         self.password = password
-        self.web_driver = WEB_DRIVER
+        self.web_driver = web_driver
         self.at_bottom = False
 
         self._at_bottom_flag = self.at_bottom

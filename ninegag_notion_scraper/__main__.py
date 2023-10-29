@@ -4,6 +4,7 @@ import os
 import logging
 from typing import List
 from notion_client import Client as NotionClient
+from selenium import webdriver
 
 from .scrapers.repository import AbstractScraperRepo
 from .scrapers.repository.ninegag import NineGagScraperRepo
@@ -23,11 +24,27 @@ PERSONAL_URL = "172.30.0.10:5000/WebDAV/9gag-memes"
 
 logger = logging.getLogger('app')
 
+chrome_options = webdriver.ChromeOptions()
+
+# Headless
+# if os.environ.get('HEADLESS'):
+#     chrome_options.add_argument('headless')
+#     chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
+
+WEB_DRIVER = webdriver.Chrome(options=chrome_options)
+
+# WEB_DRIVER = webdriver.Remote(
+#     command_executor='http://172.30.0.4:4444',
+#     options=chrome_options
+# )
+
 
 def main():
     """The entry point to the application"""
+
     memes_from_9gag_to_notion_with_local_save(
-        NineGagScraperRepo(NINEGAG_URL, NINEGAG_USERNAME, NINEGAG_PASSWORD),
+        NineGagScraperRepo(NINEGAG_URL, NINEGAG_USERNAME,
+                           NINEGAG_PASSWORD, WEB_DRIVER),
         NotionStorageRepo(NotionClient(auth=NOTION_TOKEN), NOTION_DATABASE),
         FileStorageRepo("./dump")
     )
