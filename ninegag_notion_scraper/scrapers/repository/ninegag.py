@@ -380,11 +380,14 @@ class NineGagScraperRepo(AbstractScraperRepo):
         at the end of the list of memes on the page. If there are still
         memes to load, it will be spinning"""
 
-        loader = self._get_loader_element().get_attribute('class')
+        loader = self._get_loader_element()
+        loader_class = loader.get_attribute('class')
 
-        if "spin" in loader:
+        assert loader_class
+
+        if "spin" in loader_class.split(" "):
             return True
-        elif "end" in loader:
+        elif "end" in loader_class.split(" "):
             return False
         else:
             logger.warning('Unable to detect loader status %s',

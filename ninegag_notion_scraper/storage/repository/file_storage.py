@@ -21,10 +21,9 @@ class URLItems:
 class FileStorageRepo(AbstractStorageRepo):
     """A class to save items locally on the file system"""
 
-    def __init__(self, path: str) -> None:
-        self._path = path
-        self._meme_path = os.path.join(self._path, MEME_PATH)
-        self._covers_path = os.path.join(self._path, COVERS_PATH)
+    def __init__(self, covers_path: str, memes_path: str) -> None:
+        self.meme_path = memes_path
+        self.covers_path = covers_path
 
     def save_meme(self, meme: Meme, *args) -> None:
         self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
@@ -34,7 +33,7 @@ class FileStorageRepo(AbstractStorageRepo):
         """Save memes from a url"""
         self._validate_url(url)
         url_item = self._url_items(url)
-        urlretrieve(url, os.path.join(self._meme_path,
+        urlretrieve(url, os.path.join(self.meme_path,
                     file_id + url_item.file_extension))
 
     def _save_cover_from_url(self, url: str, file_id: str):
@@ -44,7 +43,7 @@ class FileStorageRepo(AbstractStorageRepo):
         # urlretrieve(url, os.path.join(self._covers_path,
         #             file_id + url_item.file_extension))
         req = requests.get(url, allow_redirects=True, timeout=60)
-        with open(os.path.join(self._covers_path, file_id +
+        with open(os.path.join(self.covers_path, file_id +
                                url_item.file_extension), 'wb') as file:
             file.write(req.content)
 

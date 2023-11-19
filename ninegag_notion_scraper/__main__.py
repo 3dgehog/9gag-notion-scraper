@@ -5,6 +5,7 @@ import logging
 from typing import List
 from notion_client import Client as NotionClient
 from selenium import webdriver
+from latest_user_agents import get_latest_user_agents
 
 from .scrapers.repository import AbstractScraperRepo
 from .scrapers.repository.ninegag import NineGagScraperRepo
@@ -29,7 +30,8 @@ chrome_options = webdriver.ChromeOptions()
 # Headless
 # if os.environ.get('HEADLESS'):
 #     chrome_options.add_argument('headless')
-#     chrome_options.add_argument("user-agent=Chrome/96.0.4664.110")
+
+chrome_options.add_argument(f"user-agent={get_latest_user_agents()[1]}")
 
 WEB_DRIVER = webdriver.Chrome(options=chrome_options)
 
@@ -46,7 +48,8 @@ def main():
         NineGagScraperRepo(NINEGAG_URL, NINEGAG_USERNAME,
                            NINEGAG_PASSWORD, WEB_DRIVER),
         NotionStorageRepo(NotionClient(auth=NOTION_TOKEN), NOTION_DATABASE),
-        FileStorageRepo("./dump")
+        FileStorageRepo(covers_path=os.getenv("COVERS_PATH", "./dump/covers"),
+                        memes_path=os.getenv("MEMES_PATH", "./dump/memes"))
     )
 
 

@@ -10,6 +10,7 @@ python-dotenv = "*"
 validators = "*"
 requests = "*"
 retry = "*"
+latest-user-agents = "*"
 
 [dev-packages]
 autopep8 = "*"
