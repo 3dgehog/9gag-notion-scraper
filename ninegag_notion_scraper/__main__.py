@@ -1,12 +1,14 @@
 """The main function"""
 
-import os
-import logging
+from argparse import Namespace
 from typing import List
 from notion_client import Client as NotionClient
-from selenium import webdriver
-from latest_user_agents import get_latest_user_agents
+from selenium.webdriver.remote.webdriver import WebDriver
 
+
+from .env import Environments, get_envs
+from .cli import get_args
+from .webdriver import WEB_DRIVER
 from .scrapers.repository import AbstractScraperRepo
 from .scrapers.repository.ninegag import NineGagScraperRepo
 from .scrapers.entities import Meme
@@ -14,42 +16,20 @@ from .storage.repository import AbstractStorageRepo
 from .storage.repository.notion import NotionStorageRepo
 from .storage.repository.file_storage import FileStorageRepo
 
-NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-NOTION_DATABASE = os.environ["NOTION_DATABASE"]
 
-NINEGAG_USERNAME = os.environ['USERNAME']
-NINEGAG_PASSWORD = os.environ['PASSWORD']
-NINEGAG_URL = os.environ['9GAG_URL']
-
-PERSONAL_URL = "172.30.0.10:5000/WebDAV/9gag-memes"
-
-logger = logging.getLogger('app')
-
-chrome_options = webdriver.ChromeOptions()
-
-# Headless
-# if os.environ.get('HEADLESS'):
-#     chrome_options.add_argument('headless')
-
-chrome_options.add_argument(f"user-agent={get_latest_user_agents()[1]}")
-
-WEB_DRIVER = webdriver.Chrome(options=chrome_options)
-
-# WEB_DRIVER = webdriver.Remote(
-#     command_executor='http://172.30.0.4:4444',
-#     options=chrome_options
-# )
-
-
-def main():
+def main(args: Namespace, envs: Environments, webdriver: WebDriver):
     """The entry point to the application"""
 
+    if args.skip_existing:
+        pass
+
     memes_from_9gag_to_notion_with_local_save(
-        NineGagScraperRepo(NINEGAG_URL, NINEGAG_USERNAME,
-                           NINEGAG_PASSWORD, WEB_DRIVER),
-        NotionStorageRepo(NotionClient(auth=NOTION_TOKEN), NOTION_DATABASE),
-        FileStorageRepo(covers_path=os.getenv("COVERS_PATH", "./dump/covers"),
-                        memes_path=os.getenv("MEMES_PATH", "./dump/memes"))
+        NineGagScraperRepo(envs.NINEGAG_URL, envs.NINEGAG_USERNAME,
+                           envs.NINEGAG_PASSWORD, webdriver),
+        NotionStorageRepo(NotionClient(
+            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE),
+        FileStorageRepo(covers_path=envs.COVERS_PATH,
+                        memes_path=envs.MEMES_PATH)
     )
 
 
@@ -73,4 +53,6 @@ def memes_from_9gag_to_notion_with_local_save(
 
 
 if __name__ == '__main__':
-    main()
+    args = get_args()
+    envs = get_envs()
+    main(args=args, envs=envs, webdriver=WEB_DRIVER)
