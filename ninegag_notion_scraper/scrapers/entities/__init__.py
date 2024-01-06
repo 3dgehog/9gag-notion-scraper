@@ -1,8 +1,7 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class Meme:
+class Meme(BaseModel):
     title: str
     item_id: str
     post_web_url: str

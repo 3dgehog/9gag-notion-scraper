@@ -9,7 +9,8 @@
             "type": "python",
             "request": "launch",
             "module": "ninegag_notion_scraper",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": ["--skip-existing"]
         }
     ]
 }

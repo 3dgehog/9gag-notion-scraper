@@ -30,7 +30,7 @@ pipenv run app
 - [x] Save meme to a folder
 - [x] Check notion database uses correct properties
 - [x] Give notion the ability to update an existing meme
-- [ ] Skip if already exists
+- [x] Skip if already exists
 - [ ] Stop when found meme that exists
 - [ ] Add a peronal WebDAV link to notion page
 - [ ] Detected when logged out again (like page can be accessed without logging in)

@@ -25,6 +25,26 @@ class NotionStorageRepo(AbstractStorageRepo):
         self._db_id = database_id
         self._validate_database_schema(database_id)
 
+    def save_meme(self, meme: Meme, update: bool = False) -> None:
+        title = meme.title
+        item_id = meme.item_id
+        external_web_url = meme.post_web_url
+        tags = meme.tags
+        cover_url = meme.cover_photo_url
+
+        if not (existing_page := self._exists(item_id)):
+            self._create_page(title, item_id, external_web_url,
+                              tags, cover_url)
+            logger.debug("Created page for Post ID of %s", item_id)
+
+        elif existing_page and update:
+            self._update_page(existing_page['id'], title, item_id,
+                              external_web_url, tags, cover_url)
+            logger.debug("Updated page for Post ID of %s", item_id)
+
+    def meme_exists(self, meme: Meme) -> bool:
+        return all([self._exists(meme.item_id)])
+
     def _validate_database_schema(self, database_id: str) -> None:
         db = self._client.databases.retrieve(database_id)
         assert isinstance(db, dict)
@@ -107,22 +127,6 @@ class NotionStorageRepo(AbstractStorageRepo):
             properties=self._create_notion_json_for_all_properties(
                 name, url, item_id, post_section)
         )
-
-    def save_meme(self, meme: Meme, update: bool = False) -> None:
-        title = meme.title
-        item_id = meme.item_id
-        external_web_url = meme.post_web_url
-        tags = meme.tags
-        cover_url = meme.cover_photo_url
-
-        if not (existing_page := self._exists(item_id)):
-            logger.debug("Creating page for Post ID of %s", item_id)
-            self._create_page(title, item_id, external_web_url,
-                              tags, cover_url)
-        elif existing_page and update:
-            logger.debug("Updating page for Post ID of %s", item_id)
-            self._update_page(existing_page['id'], title, item_id,
-                              external_web_url, tags, cover_url)
 
     def _create_notion_json_for_cover(self, url: str):
         return {
