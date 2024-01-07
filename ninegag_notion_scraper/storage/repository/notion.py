@@ -25,7 +25,10 @@ class NotionStorageRepo(AbstractStorageRepo):
         self._db_id = database_id
         self._validate_database_schema(database_id)
 
-    def save_meme(self, meme: Meme, update: bool = False) -> None:
+    def save_meme(self,
+                  meme: Meme,
+                  update: bool = False
+                  ) -> None:
         title = meme.title
         item_id = meme.item_id
         external_web_url = meme.post_web_url

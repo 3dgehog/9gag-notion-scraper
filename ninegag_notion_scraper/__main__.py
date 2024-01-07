@@ -34,41 +34,52 @@ def main(args: Namespace, envs: Environments, webdriver: WebDriver):
     )
 
 
+class StopLoopException(Exception):
+    pass
+
+
 def memes_from_9gag_to_notion_with_local_save(
         ninegag: AbstractScraperRepo,
         notion: AbstractStorageRepo,
-        storage: AbstractStorageRepo,
+        file_storage: AbstractStorageRepo,
         args: Namespace) -> None:
 
     with ninegag:
+        try:
+            memes: List[Meme]
 
-        memes: List[Meme]
+            while not ninegag.at_bottom:
+                memes = ninegag.get_memes()
 
-        # Waiting until next stream is detected or the spinner ends
-        while not ninegag.at_bottom:
-            memes = ninegag.get_memes()
+                for meme in memes:
+                    try:
+                        evaluate_storage(args, meme, file_storage)
+                        evaluate_storage(args, meme, notion)
+                    except StopLoopException:
+                        raise  # propagate the exception to stop the outer loop
 
-            for meme in memes:
+                ninegag.next_page()
 
-                if args.skip_existing:
-                    if not storage.meme_exists(meme):
-                        storage.save_meme(meme)
-                    else:
-                        logger.info(f"Meme ID {meme.item_id} was skipped"
-                                    " from storage")
-                else:
-                    storage.save_meme(meme)
+        except StopLoopException:
+            logger.debug("Loop stopped by evaluate_storage")
 
-                if args.skip_existing:
-                    if not notion.meme_exists(meme):
-                        notion.save_meme(meme, update=True)
-                    else:
-                        logger.info(f"Meme ID {meme.item_id} was skipped"
-                                    " from notion")
-                else:
-                    notion.save_meme(meme, update=True)
 
-            ninegag.next_page()
+def evaluate_storage(args: Namespace,
+                     meme: Meme,
+                     storage: AbstractStorageRepo):
+
+    exists = storage.meme_exists(meme)
+
+    if args.skip_existing and exists:
+        logger.info(f"Meme ID {meme.item_id} was skipped "
+                    f"in '{storage.__class__.__name__}' because it "
+                    "already exists")
+        return
+
+    if args.stop_existing and exists:
+        raise StopLoopException  # stop the outer loop
+
+    storage.save_meme(meme, update=True)
 
 
 if __name__ == '__main__':

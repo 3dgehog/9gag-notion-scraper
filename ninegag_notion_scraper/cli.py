@@ -4,6 +4,7 @@ import argparse
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="9gag-notion-scraper")
     parser.add_argument("--skip-existing", action='store_true')
+    parser.add_argument("--stop-existing", action='store_true')
     return parser
 
 

@@ -27,7 +27,7 @@ class FileStorageRepo(AbstractStorageRepo):
         self.meme_path = memes_path
         self.covers_path = covers_path
 
-    def save_meme(self, meme: Meme, *args) -> None:
+    def save_meme(self, meme: Meme, update=False) -> None:
         self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
         self._save_meme_from_url(meme.post_file_url, meme.item_id)
 

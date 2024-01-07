@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "ninegag_notion_scraper",
             "justMyCode": true,
-            "args": ["--skip-existing"]
+            "args": []
         }
     ]
 }
