@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from urllib.request import urlretrieve
+from typing import Callable
 from urllib.parse import urlparse
 import validators
 import requests
@@ -14,6 +14,10 @@ from . import AbstractStorageRepo
 logger = logging.getLogger('app.storage')
 
 
+class DownloadError(Exception):
+    pass
+
+
 @dataclass
 class URLItem:
     file_name: str
@@ -23,11 +27,19 @@ class URLItem:
 class FileStorageRepo(AbstractStorageRepo):
     """A class to save items locally on the file system"""
 
-    def __init__(self, covers_path: str, memes_path: str) -> None:
+    def __init__(self, covers_path: str,
+                 memes_path: str, _selenium_cookies_func: Callable) -> None:
         self.meme_path = memes_path
         self.covers_path = covers_path
 
+        # Request setup
+        self._session = requests.Session()
+        self._selenium_cookies_func = _selenium_cookies_func
+        self._cookie_loaded_flag = False
+
     def save_meme(self, meme: Meme, update=False) -> None:
+        if update:
+            logger.warning("Kwarg 'update' is not implmented in this class")
         self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
         self._save_meme_from_url(meme.post_file_url, meme.item_id)
 
@@ -41,27 +53,45 @@ class FileStorageRepo(AbstractStorageRepo):
         )
         return all([meme_exists, cover_exists])
 
-    def _save_meme_from_url(self, url: str, file_id: str):
-        """Save memes from a url"""
+    @property
+    def session(self) -> requests.Session:
+        if not self._cookie_loaded_flag:
+            self._load_cookies()
+            self._cookie_loaded_flag = True
+        return self._session
+
+    def _load_cookies(self) -> None:
+        for cookie in self._selenium_cookies_func():
+            self._session.cookies.set(cookie['name'], cookie['value'])
+        logger.debug("Cookies loaded")
+
+    def _save_file_from_url_and_path(self, url: str, file_id: str, path: str):
         self._validate_url(url)
         url_item = self._get_url_items_from_url(url)
-        urlretrieve(url, os.path.join(self.meme_path,
-                    file_id + url_item.file_extension))
-        logger.debug(f"Post file: '{file_id + url_item.file_extension}'"
-                     f" saved in: '{self.meme_path}'")
+        response = self.session.get(url)
+        destination_path = os.path.join(path,
+                                        file_id + url_item.file_extension)
+
+        if response.status_code == 200:
+            with open(destination_path, 'wb') as file:
+                file.write(response.content)
+        else:
+            raise DownloadError(
+                "Failed to download file. Status code: "
+                f"{response.status_code}")
+
+        logger.debug(f"File: '{file_id + url_item.file_extension}'"
+                     f" saved in: '{path}'")
+
+    def _save_meme_from_url(self, url: str, file_id: str):
+        return self._save_file_from_url_and_path(url,
+                                                 file_id,
+                                                 self.meme_path)
 
     def _save_cover_from_url(self, url: str, file_id: str):
-        """Save covers from a url"""
-        self._validate_url(url)
-        url_item = self._get_url_items_from_url(url)
-        # urlretrieve(url, os.path.join(self._covers_path,
-        #             file_id + url_item.file_extension))
-        req = requests.get(url, allow_redirects=True, timeout=60)
-        with open(os.path.join(self.covers_path, file_id +
-                               url_item.file_extension), 'wb') as file:
-            file.write(req.content)
-        logger.debug(f"Post cover: '{file_id + url_item.file_extension}'"
-                     f" saved in: '{self.covers_path}'")
+        return self._save_file_from_url_and_path(url,
+                                                 file_id,
+                                                 self.covers_path)
 
     def _validate_url(self, url: str) -> None:
         if not validators.url(url):

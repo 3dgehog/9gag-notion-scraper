@@ -42,6 +42,68 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
         self.web_driver.implicitly_wait(DEFAULT_IMPLICITY_WAIT)
 
+    def get_memes(self) -> List[Meme]:
+        """Return memes from current stream"""
+        if self._at_bottom_flag:
+            logger.warning("Reached the bottom, no more memes to give")
+            return []
+
+        stream = self._get_stream(self._current_stream_num)
+        articles = self._get_article_from_stream(stream)
+
+        elements = []
+
+        for article in articles:
+            try:
+                tags = self._get_tags_from_article(article)
+
+                if 'Promoted' in tags:
+                    logger.debug("Skipping Promoted Post")
+                    continue
+
+                url = self._get_url_from_article(article)
+
+                articledata = Meme(
+                    title=self._get_title_from_article(article),
+                    item_id=os.path.basename(url),
+                    post_web_url=url,
+                    tags=tags,
+                    cover_photo_url=self._get_cover_photo_from_article(
+                        article),
+                    post_file_url=self._get_file_url_from_article(article)
+                )
+            except NoSuchElementException:
+                logger.warning("Skipping Article because of missing element")
+                continue
+
+            elements.append(articledata)
+
+        return elements
+
+    def next_page(self, **kwargs) -> int:
+        """Goes to the next stream"""
+        if self._at_bottom_flag:
+            logger.warning("Reached the bottom, no more pages")
+            return self._current_stream_num
+
+        self._current_stream_num += 1
+        self._scroll_to_spinner(**kwargs)
+
+        if not self._is_loader_spinning():
+            self._at_bottom_flag = True
+
+        return self._current_stream_num
+
+    def get_cookies(self):
+        return self.web_driver.get_cookies()
+
+    def __enter__(self):
+        self._setup(self.url)
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.web_driver.quit()
+
     def _setup(self, url: str):
         self.web_driver.get(url)
         self._load_cookies()
@@ -75,13 +137,6 @@ class NineGagScraperRepo(AbstractScraperRepo):
             'div.qc-cmp2-footer.qc-cmp2-footer-overlay.qc-cmp2-footer-scrolled'
             ' > div > button.css-1k47zha')
         accept_button.click()
-
-    def __enter__(self):
-        self._setup(self.url)
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self.web_driver.quit()
 
     def _is_logged_in(self):
         title_based = self.web_driver.find_element(
@@ -155,44 +210,6 @@ class NineGagScraperRepo(AbstractScraperRepo):
             raise error
 
         return list_view
-
-    def get_memes(self) -> List[Meme]:
-        """Return memes from current stream"""
-        if self._at_bottom_flag:
-            logger.warning("Reached the bottom, no more memes to give")
-            return []
-
-        stream = self._get_stream(self._current_stream_num)
-        articles = self._get_article_from_stream(stream)
-
-        elements = []
-
-        for article in articles:
-            try:
-                tags = self._get_tags_from_article(article)
-
-                if 'Promoted' in tags:
-                    logger.debug("Skipping Promoted Post")
-                    continue
-
-                url = self._get_url_from_article(article)
-
-                articledata = Meme(
-                    title=self._get_title_from_article(article),
-                    item_id=os.path.basename(url),
-                    post_web_url=url,
-                    tags=tags,
-                    cover_photo_url=self._get_cover_photo_from_article(
-                        article),
-                    post_file_url=self._get_file_url_from_article(article)
-                )
-            except NoSuchElementException:
-                logger.warning("Skipping Article because of missing element")
-                continue
-
-            elements.append(articledata)
-
-        return elements
 
     def _get_stream(self, stream_num: int) -> WebElement:
         try:
@@ -329,20 +346,6 @@ class NineGagScraperRepo(AbstractScraperRepo):
         else:
             assert image_url
             return image_url
-
-    def next_page(self, **kwargs) -> int:
-        """Goes to the next stream"""
-        if self._at_bottom_flag:
-            logger.warning("Reached the bottom, no more pages")
-            return self._current_stream_num
-
-        self._current_stream_num += 1
-        self._scroll_to_spinner(**kwargs)
-
-        if not self._is_loader_spinning():
-            self._at_bottom_flag = True
-
-        return self._current_stream_num
 
     def _does_stream_num_exists(self, stream_num: int) -> bool:
         try:

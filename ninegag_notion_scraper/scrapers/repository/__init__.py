@@ -18,6 +18,10 @@ class AbstractScraperRepo(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_cookies(self) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
     def __enter__(self):
         raise NotImplementedError
 

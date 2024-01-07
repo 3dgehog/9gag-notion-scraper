@@ -1,6 +1,5 @@
 """The main function"""
 
-from argparse import Namespace
 import logging
 from typing import List
 from notion_client import Client as NotionClient
@@ -8,7 +7,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 
 from .env import Environments, get_envs
-from .cli import get_args
+from .cli import Arguments, get_args
 from .webdriver import WEB_DRIVER
 from .scrapers.repository import AbstractScraperRepo
 from .scrapers.repository.ninegag import NineGagScraperRepo
@@ -20,16 +19,19 @@ from .storage.repository.file_storage import FileStorageRepo
 logger = logging.getLogger('app')
 
 
-def main(args: Namespace, envs: Environments, webdriver: WebDriver):
+def main(args: Arguments, envs: Environments, webdriver: WebDriver):
     """The entry point to the application"""
 
+    ninegag_repo = NineGagScraperRepo(envs.NINEGAG_URL, envs.NINEGAG_USERNAME,
+                                      envs.NINEGAG_PASSWORD, webdriver)
+
     memes_from_9gag_to_notion_with_local_save(
-        NineGagScraperRepo(envs.NINEGAG_URL, envs.NINEGAG_USERNAME,
-                           envs.NINEGAG_PASSWORD, webdriver),
+        ninegag_repo,
         NotionStorageRepo(NotionClient(
             auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE),
         FileStorageRepo(covers_path=envs.COVERS_PATH,
-                        memes_path=envs.MEMES_PATH),
+                        memes_path=envs.MEMES_PATH,
+                        _selenium_cookies_func=ninegag_repo.get_cookies),
         args=args
     )
 
@@ -42,7 +44,7 @@ def memes_from_9gag_to_notion_with_local_save(
         ninegag: AbstractScraperRepo,
         notion: AbstractStorageRepo,
         file_storage: AbstractStorageRepo,
-        args: Namespace) -> None:
+        args: Arguments) -> None:
 
     with ninegag:
         try:
@@ -64,7 +66,7 @@ def memes_from_9gag_to_notion_with_local_save(
             logger.debug("Loop stopped by evaluate_storage")
 
 
-def evaluate_storage(args: Namespace,
+def evaluate_storage(args: Arguments,
                      meme: Meme,
                      storage: AbstractStorageRepo):
 
