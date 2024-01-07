@@ -20,6 +20,8 @@ LOGIN_URL = 'https://9gag.com/login'
 
 DEFAULT_IMPLICITY_WAIT = 1
 
+SLEEP = 0.5
+
 PICKLE_COOKIES = "cookies.pkl"
 
 
@@ -80,14 +82,14 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
         return elements
 
-    def next_page(self, **kwargs) -> int:
+    def next_page(self) -> int:
         """Goes to the next stream"""
         if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more pages")
             return self._current_stream_num
 
         self._current_stream_num += 1
-        self._scroll_to_spinner(**kwargs)
+        self._scroll_to_spinner()
 
         if not self._is_loader_spinning():
             self._at_bottom_flag = True
@@ -166,7 +168,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
         logger.debug("Attempting to login")
         self.web_driver.get(LOGIN_URL)
 
-        time.sleep(1)
+        time.sleep(SLEEP)
 
         username_field = self.web_driver.find_element(
             By.CSS_SELECTOR,
@@ -190,7 +192,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
         login_button.click()
 
-        time.sleep(1)
+        time.sleep(SLEEP)
 
         self._attempted_login_flag = True
 
@@ -355,15 +357,15 @@ class NineGagScraperRepo(AbstractScraperRepo):
             return False
         return True
 
-    def _scroll_by(self, sleep=0.5, scroll=500):
+    def _scroll_by(self, scroll=500):
         self.web_driver.execute_script(f"window.scrollBy(0,{scroll})", "")
-        time.sleep(sleep)
+        time.sleep(SLEEP)
 
-    def _scroll_to_spinner(self, sleep: int = 1):
+    def _scroll_to_spinner(self):
         element = self._get_loader_element()
         actions = ActionChains(self.web_driver)
         actions.move_to_element(element).perform()
-        time.sleep(sleep)
+        time.sleep(SLEEP)
 
     def _get_loader_element(self) -> WebElement:
         try:
