@@ -6,8 +6,9 @@ from typing import Awaitable, Optional
 from notion_client import Client
 from retry import retry
 
-from ninegag_notion_scraper.scrapers.entities import Meme
-from . import AbstractStorageRepo
+from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.interfaces.repositories.meme \
+    import SaveMemeRepo
 
 
 logger = logging.getLogger("app.notion")
@@ -19,7 +20,7 @@ class Properties(Enum):
     TAGS = {"name": "Post Section", "type": "multi_select"}
 
 
-class NotionStorageRepo(AbstractStorageRepo):
+class NotionStorageRepo(SaveMemeRepo):
     def __init__(self, client: Client, database_id: str) -> None:
         self._client = client
         self._db_id = database_id

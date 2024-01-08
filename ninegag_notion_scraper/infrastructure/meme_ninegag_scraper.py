@@ -1,7 +1,6 @@
 import time
 import os
 import logging
-import pickle
 from typing import List
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -9,9 +8,10 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
-from ..entities import Meme
-from . import AbstractScraperRepo
-
+from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.interfaces.repositories.meme \
+    import GetMemesRepo
+from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 
 logger = logging.getLogger('app.9gag')
 
@@ -22,21 +22,22 @@ DEFAULT_IMPLICITY_WAIT = 1
 
 SLEEP = 0.5
 
-PICKLE_COOKIES = "cookies.pkl"
 
-
-class NineGagScraperRepo(AbstractScraperRepo):
+class NineGagScraperRepo(GetMemesRepo):
     """A class that handles all the web scraping on 9gag"""
 
-    def __init__(self, url: str, username: str, password: str,
-                 web_driver: WebDriver) -> None:
+    def __init__(self, url: str,
+                 username: str, password: str,
+                 web_driver: WebDriver,
+                 cookie_manager: CookiesUseCase) -> None:
         self.url = url
         self.username = username
         self.password = password
         self.web_driver = web_driver
-        self.at_bottom = False
+        self.at_end = False
+        self.cookie_manager = cookie_manager
 
-        self._at_bottom_flag = self.at_bottom
+        self._at_bottom_flag = self.at_end
         self._login_flag = False
         self._attempted_login_flag = False
         self._list_view: WebElement
@@ -82,7 +83,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
         return elements
 
-    def next_page(self) -> int:
+    def next(self) -> int:
         """Goes to the next stream"""
         if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more pages")
@@ -121,9 +122,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
         self._list_view = self._get_list_view()
 
     def _load_cookies(self):
-        if os.path.exists(PICKLE_COOKIES):
-            with open(PICKLE_COOKIES, "rb") as pcookie:
-                cookies = pickle.load(pcookie)
+        if (cookies := self.cookie_manager.get_cookies()):
             for cookie in cookies:
                 self.web_driver.add_cookie(cookie)
 
@@ -198,7 +197,7 @@ class NineGagScraperRepo(AbstractScraperRepo):
 
         self._is_logged_in()
 
-        pickle.dump(self.web_driver.get_cookies(), open(PICKLE_COOKIES, "wb"))
+        self.cookie_manager.save_cookies(self.web_driver.get_cookies())
 
     def _get_list_view(self) -> WebElement:
         try:

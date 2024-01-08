@@ -1,20 +1,23 @@
 """The main function"""
 
 import logging
-from typing import List
 from notion_client import Client as NotionClient
 from selenium.webdriver.remote.webdriver import WebDriver
 
-
+# Setup tools
 from .env import Environments, get_envs
 from .cli import Arguments, get_args
 from .webdriver import WEB_DRIVER
-from .scrapers.repository import AbstractScraperRepo
-from .scrapers.repository.ninegag import NineGagScraperRepo
-from .scrapers.entities import Meme
-from .storage.repository import AbstractStorageRepo
-from .storage.repository.notion import NotionStorageRepo
-from .storage.repository.file_storage import FileStorageRepo
+
+from .app.entities.meme import Meme
+from .app.use_cases.cookies import CookiesUseCase
+from .app.use_cases.get_memes import GetMemes
+from .app.use_cases.save_meme import SaveMeme
+from .infrastructure.cookie_filestorage \
+    import FileCookiesRepo
+from .infrastructure.meme_ninegag_scraper import NineGagScraperRepo
+from .infrastructure.meme_notion import NotionStorageRepo
+from .infrastructure.meme_filestorage import FileStorageRepo
 
 logger = logging.getLogger('app')
 
@@ -22,16 +25,30 @@ logger = logging.getLogger('app')
 def main(args: Arguments, envs: Environments, webdriver: WebDriver):
     """The entry point to the application"""
 
-    ninegag_repo = NineGagScraperRepo(envs.NINEGAG_URL, envs.NINEGAG_USERNAME,
-                                      envs.NINEGAG_PASSWORD, webdriver)
+    cookie_usecase = CookiesUseCase(FileCookiesRepo())
+
+    ninegag_repo = NineGagScraperRepo(
+        envs.NINEGAG_URL,
+        envs.NINEGAG_USERNAME,
+        envs.NINEGAG_PASSWORD,
+        webdriver,
+        cookie_usecase
+    )
+
+    notion_repo = NotionStorageRepo(NotionClient(
+        auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
+    )
+
+    filestorage_repo = FileStorageRepo(
+        covers_path=envs.COVERS_PATH,
+        memes_path=envs.MEMES_PATH,
+        _selenium_cookies_func=cookie_usecase.get_cookies
+    )
 
     memes_from_9gag_to_notion_with_local_save(
-        ninegag_repo,
-        NotionStorageRepo(NotionClient(
-            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE),
-        FileStorageRepo(covers_path=envs.COVERS_PATH,
-                        memes_path=envs.MEMES_PATH,
-                        _selenium_cookies_func=ninegag_repo.get_cookies),
+        GetMemes(ninegag_repo),
+        SaveMeme(notion_repo),
+        SaveMeme(filestorage_repo),
         args=args
     )
 
@@ -41,26 +58,19 @@ class StopLoopException(Exception):
 
 
 def memes_from_9gag_to_notion_with_local_save(
-        ninegag: AbstractScraperRepo,
-        notion: AbstractStorageRepo,
-        file_storage: AbstractStorageRepo,
+        ninegag_scraper: GetMemes,
+        notion: SaveMeme,
+        file_storage: SaveMeme,
         args: Arguments) -> None:
 
-    with ninegag:
+    for memes in ninegag_scraper.get_memes():
         try:
-            memes: List[Meme]
-
-            while not ninegag.at_bottom:
-                memes = ninegag.get_memes()
-
-                for meme in memes:
-                    try:
-                        evaluate_storage(args, meme, file_storage)
-                        evaluate_storage(args, meme, notion)
-                    except StopLoopException:
-                        raise  # propagate the exception to stop the outer loop
-
-                ninegag.next_page()
+            for meme in memes:
+                try:
+                    evaluate_storage(args, meme, file_storage)
+                    evaluate_storage(args, meme, notion)
+                except StopLoopException:
+                    raise  # propagate the exception to stop the outer loop
 
         except StopLoopException:
             logger.debug("Loop stopped by evaluate_storage")
@@ -68,7 +78,7 @@ def memes_from_9gag_to_notion_with_local_save(
 
 def evaluate_storage(args: Arguments,
                      meme: Meme,
-                     storage: AbstractStorageRepo):
+                     storage: SaveMeme):
 
     exists = storage.meme_exists(meme)
 
@@ -81,7 +91,7 @@ def evaluate_storage(args: Arguments,
     if args.stop_existing and exists:
         raise StopLoopException  # stop the outer loop
 
-    storage.save_meme(meme, update=True)
+    storage.save_meme(meme)
 
 
 if __name__ == '__main__':

@@ -7,8 +7,9 @@ import requests
 import glob
 import logging
 
-from ninegag_notion_scraper.scrapers.entities import Meme
-from . import AbstractStorageRepo
+from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.interfaces.repositories.meme \
+    import SaveMemeRepo
 
 
 logger = logging.getLogger('app.storage')
@@ -24,7 +25,7 @@ class URLItem:
     file_extension: str
 
 
-class FileStorageRepo(AbstractStorageRepo):
+class FileStorageRepo(SaveMemeRepo):
     """A class to save items locally on the file system"""
 
     def __init__(self, covers_path: str,
