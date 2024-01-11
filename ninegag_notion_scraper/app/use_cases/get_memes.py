@@ -9,10 +9,9 @@ class GetMemes:
         self.memes_repo = memes_repo
 
     def get_memes(self) -> Generator[List[Meme], None, None]:
-        with self.memes_repo:
-            while not self.memes_repo.at_end:
-                memes_entities = self.memes_repo.get_memes()
+        while not self.memes_repo.at_end:
+            memes_entities = self.memes_repo.get_memes()
 
-                yield memes_entities
+            yield memes_entities
 
-                self.memes_repo.next()
+            self.memes_repo.next()

@@ -37,3 +37,10 @@ class SaveMemeRepo(ABC):
     @abstractmethod
     def meme_exists(self, meme: Meme) -> bool:
         ...
+
+
+class GetMemeRepo(ABC):
+
+    @abstractmethod
+    def get_meme_from_url(self, url: str) -> Meme:
+        ...

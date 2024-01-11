@@ -15,7 +15,7 @@ from .app.use_cases.get_memes import GetMemes
 from .app.use_cases.save_meme import SaveMeme
 from .infrastructure.cookie_filestorage \
     import FileCookiesRepo
-from .infrastructure.meme_ninegag_scraper import NineGagScraperRepo
+from .infrastructure.meme_ninegag_scraper import NineGagStreamScraperRepo
 from .infrastructure.meme_notion import NotionStorageRepo
 from .infrastructure.meme_filestorage import FileStorageRepo
 
@@ -27,7 +27,7 @@ def main(args: Arguments, envs: Environments, webdriver: WebDriver):
 
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
 
-    ninegag_repo = NineGagScraperRepo(
+    ninegag_scraper_repo = NineGagStreamScraperRepo(
         envs.NINEGAG_URL,
         envs.NINEGAG_USERNAME,
         envs.NINEGAG_PASSWORD,
@@ -35,7 +35,7 @@ def main(args: Arguments, envs: Environments, webdriver: WebDriver):
         cookie_usecase
     )
 
-    notion_repo = NotionStorageRepo(NotionClient(
+    notion_storage_repo = NotionStorageRepo(NotionClient(
         auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
     )
 
@@ -45,12 +45,14 @@ def main(args: Arguments, envs: Environments, webdriver: WebDriver):
         _selenium_cookies_func=cookie_usecase.get_cookies
     )
 
-    memes_from_9gag_to_notion_with_local_save(
-        GetMemes(ninegag_repo),
-        SaveMeme(notion_repo),
-        SaveMeme(filestorage_repo),
-        args=args
-    )
+    with ninegag_scraper_repo:
+
+        memes_from_9gag_to_notion_with_local_save(
+            ninegag=GetMemes(ninegag_scraper_repo),
+            notion=SaveMeme(notion_storage_repo),
+            file_storage=SaveMeme(filestorage_repo),
+            args=args
+        )
 
 
 class StopLoopException(Exception):
@@ -58,12 +60,12 @@ class StopLoopException(Exception):
 
 
 def memes_from_9gag_to_notion_with_local_save(
-        ninegag_scraper: GetMemes,
+        ninegag: GetMemes,
         notion: SaveMeme,
         file_storage: SaveMeme,
         args: Arguments) -> None:
 
-    for memes in ninegag_scraper.get_memes():
+    for memes in ninegag.get_memes():
         try:
             for meme in memes:
                 try:
@@ -97,4 +99,10 @@ def evaluate_storage(args: Arguments,
 if __name__ == '__main__':
     args = get_args()
     envs = get_envs()
+
+    if args.debug:
+        from .debug import main as debug
+        debug(args, envs)
+        quit()
+
     main(args=args, envs=envs, webdriver=WEB_DRIVER)
