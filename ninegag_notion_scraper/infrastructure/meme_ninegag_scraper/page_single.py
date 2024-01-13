@@ -10,7 +10,7 @@ from ninegag_notion_scraper.app.interfaces.repositories.meme \
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 
 from .element_article import SinglePageArticle
-from .base import BaseScraperRepo
+from .base import BaseScraperRepo, ScraperNotSetup
 
 
 logger = logging.getLogger('app.9gag')
@@ -24,6 +24,8 @@ class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
                                  cookie_usecase, **kwargs)
 
     def get_meme_from_url(self, url: str) -> Meme:
+        if not self._is_setup:
+            raise ScraperNotSetup
         self.web_driver.get(url)
         try:
             section_element = self.web_driver.find_element(

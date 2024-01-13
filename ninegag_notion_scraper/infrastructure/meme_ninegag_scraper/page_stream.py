@@ -12,7 +12,7 @@ from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import GetMemesRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 
-from .base import BaseScraperRepo
+from .base import BaseScraperRepo, ScraperNotSetup
 from .element_article import StreamArticle
 
 logger = logging.getLogger('app.9gag')
@@ -40,6 +40,8 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetMemesRepo):
 
     def get_memes(self) -> List[Meme]:
         """Return memes from current stream"""
+        if not self._is_setup:
+            raise ScraperNotSetup
         if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more memes to give")
             return []

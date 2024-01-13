@@ -9,6 +9,10 @@ from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 logger = logging.getLogger('app.9gag')
 
 
+class ScraperNotSetup(Exception):
+    pass
+
+
 class BaseScraperRepo:
     def __init__(self,
                  username: str, password: str,
@@ -28,6 +32,7 @@ class BaseScraperRepo:
         self._attempted_login_flag = False
         self._login_url = 'https://9gag.com/login'
         self._homepage_url = 'https://9gag.com/'
+        self._is_setup = False
 
         self.web_driver.implicitly_wait(self.default_implicity_wait)
 
@@ -36,9 +41,11 @@ class BaseScraperRepo:
 
     def __enter__(self):
         self._setup()
+        self._is_setup = True
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
+        self._is_setup = False
         self.web_driver.quit()
 
     def _setup(self):

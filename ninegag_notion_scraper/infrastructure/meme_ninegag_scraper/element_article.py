@@ -12,7 +12,8 @@ logger = logging.getLogger('app.9gag')
 class Base:
     @staticmethod
     def get_item_id_from_url(url: str) -> str:
-        return os.path.basename(url)
+        item_id = os.path.basename(url)
+        return item_id
 
     @staticmethod
     def get_tags_from_article(article: WebElement) -> List[str | None]:
