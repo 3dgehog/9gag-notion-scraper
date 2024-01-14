@@ -1,13 +1,20 @@
 """The main function"""
 
 import logging
+from typing import Callable
 from notion_client import Client as NotionClient
 from selenium.webdriver.remote.webdriver import WebDriver
+
+from ninegag_notion_scraper.app.use_cases.get_meme import GetMeme
+from ninegag_notion_scraper.infrastructure.meme_ninegag_scraper.page_single \
+    import NineGagSinglePageScraperRepo
+from ninegag_notion_scraper.infrastructure.meme_notion.get_memes \
+    import NotionGetMemes
 
 # Setup tools
 from .env import Environments, get_envs
 from .cli import Arguments, get_args
-from .webdriver import WEB_DRIVER
+from .webdriver import get_webdriver
 
 from .app.entities.meme import Meme
 from .app.use_cases.cookies import CookiesUseCase
@@ -16,16 +23,42 @@ from .app.use_cases.save_meme import SaveMeme
 from .infrastructure.cookie_filestorage \
     import FileCookiesRepo
 from .infrastructure.meme_ninegag_scraper import NineGagStreamScraperRepo
-from .infrastructure.meme_notion import NotionStorageRepo
+from .infrastructure.meme_notion import NotionSaveMeme
 from .infrastructure.meme_filestorage import FileStorageRepo
 
 logger = logging.getLogger('app')
 
 
-def main(args: Arguments, envs: Environments, webdriver: WebDriver):
+def main(args: Arguments, envs: Environments,
+         get_webdriver: Callable[[], WebDriver]) -> None:
     """The entry point to the application"""
 
+    webdriver = get_webdriver()
+
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
+
+    if args.save_notion_meme_locally:
+        notion = NotionGetMemes(NotionClient(
+            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE)
+        file_storage = FileStorageRepo(
+            covers_path=envs.COVERS_PATH,
+            memes_path=envs.MEMES_PATH,
+            _selenium_cookies_func=cookie_usecase.get_cookies
+        )
+        ninegag = NineGagSinglePageScraperRepo(
+            envs.NINEGAG_USERNAME,
+            envs.NINEGAG_PASSWORD,
+            webdriver,
+            cookie_usecase
+        )
+        with ninegag:
+            memes_from_notion_to_save_locally(
+                notion=GetMemes(notion),
+                file_storage=SaveMeme(file_storage),
+                ninegag=GetMeme(ninegag),
+                args=args
+            )
+        return
 
     ninegag_scraper_repo = NineGagStreamScraperRepo(
         envs.NINEGAG_URL,
@@ -35,7 +68,7 @@ def main(args: Arguments, envs: Environments, webdriver: WebDriver):
         cookie_usecase
     )
 
-    notion_storage_repo = NotionStorageRepo(NotionClient(
+    notion_storage_repo = NotionSaveMeme(NotionClient(
         auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
     )
 
@@ -68,11 +101,8 @@ def memes_from_9gag_to_notion_with_local_save(
     for memes in ninegag.get_memes():
         try:
             for meme in memes:
-                try:
-                    evaluate_storage(args, meme, file_storage)
-                    evaluate_storage(args, meme, notion)
-                except StopLoopException:
-                    raise  # propagate the exception to stop the outer loop
+                evaluate_storage(args, meme, file_storage)
+                evaluate_storage(args, meme, notion)
 
         except StopLoopException:
             logger.debug("Loop stopped by evaluate_storage")
@@ -96,6 +126,25 @@ def evaluate_storage(args: Arguments,
     storage.save_meme(meme)
 
 
+def memes_from_notion_to_save_locally(
+        notion: GetMemes,
+        file_storage: SaveMeme,
+        ninegag: GetMeme,
+        args: Arguments
+):
+    for memes in notion.get_memes():
+        try:
+            for meme in memes:
+                if not file_storage.meme_exists(meme):
+                    logger.info(f"Meme {meme.item_id} doesn't exists locally")
+                    loaded_meme = ninegag.get_meme_from_url(meme.post_web_url)
+                    evaluate_storage(args, loaded_meme, file_storage)
+                else:
+                    logger.info(f"Meme {meme.item_id} already exists")
+        except StopLoopException:
+            logger.debug("Loop stopped by evaluate_storage")
+
+
 if __name__ == '__main__':
     args = get_args()
     envs = get_envs()
@@ -105,4 +154,4 @@ if __name__ == '__main__':
         debug(args, envs)
         quit()
 
-    main(args=args, envs=envs, webdriver=WEB_DRIVER)
+    main(args=args, envs=envs, get_webdriver=get_webdriver)
