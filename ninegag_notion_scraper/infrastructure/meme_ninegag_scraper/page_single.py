@@ -16,6 +16,10 @@ from .base import BaseScraperRepo, ScraperNotSetup
 logger = logging.getLogger('app.9gag')
 
 
+class Meme404(Exception):
+    pass
+
+
 class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
     def __init__(self, username: str, password: str,
                  web_driver: WebDriver, cookie_usecase: CookiesUseCase,
@@ -26,13 +30,16 @@ class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
     def get_meme_from_url(self, url: str) -> Meme:
         if not self._is_setup:
             raise ScraperNotSetup
+
         self.web_driver.get(url)
+
         try:
             section_element = self.web_driver.find_element(
                 By.CSS_SELECTOR, "#individual-post"
             )
         except NoSuchElementException:
             logger.error("Unable to find section element on page")
+            self._is_404_page()
             raise
 
         try:
@@ -50,3 +57,16 @@ class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
                 article),
             post_file_url=SinglePageArticle.get_file_url_from_article(article)
         )
+
+    def _is_404_page(self):
+        logger.debug("Checking if its 404 page")
+        try:
+            message404_element = self.web_driver.find_element(
+                By.CSS_SELECTOR, "div.message > h1"
+            )
+            message404 = message404_element.get_attribute('innerHTML')
+            pass
+            if "404" == message404:
+                raise Meme404
+        except NoSuchElementException:
+            raise

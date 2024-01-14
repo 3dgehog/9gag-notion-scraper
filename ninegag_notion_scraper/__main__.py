@@ -7,7 +7,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from ninegag_notion_scraper.app.use_cases.get_meme import GetMeme
 from ninegag_notion_scraper.infrastructure.meme_ninegag_scraper.page_single \
-    import NineGagSinglePageScraperRepo
+    import Meme404, NineGagSinglePageScraperRepo
 from ninegag_notion_scraper.infrastructure.meme_notion.get_memes \
     import NotionGetMemes
 
@@ -137,7 +137,16 @@ def memes_from_notion_to_save_locally(
             for meme in memes:
                 if not file_storage.meme_exists(meme):
                     logger.info(f"Meme {meme.item_id} doesn't exists locally")
-                    loaded_meme = ninegag.get_meme_from_url(meme.post_web_url)
+
+                    try:
+                        loaded_meme = ninegag.get_meme_from_url(
+                            meme.post_web_url)
+                    except Meme404:
+                        logger.info(
+                            f"skipping Meme ID {meme.item_id} because it "
+                            "doesn't exist anymore")
+                        continue
+
                     evaluate_storage(args, loaded_meme, file_storage)
                 else:
                     logger.info(f"Meme {meme.item_id} already exists")
