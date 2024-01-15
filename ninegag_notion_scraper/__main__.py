@@ -5,7 +5,8 @@ from typing import Callable
 from notion_client import Client as NotionClient
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from ninegag_notion_scraper.app.use_cases.get_meme import GetMeme
+from ninegag_notion_scraper.app.use_cases.meme import GetMeme, GetMemes, \
+    SaveMeme
 from ninegag_notion_scraper.infrastructure.meme_ninegag_scraper.page_single \
     import Meme404, NineGagSinglePageScraperRepo
 from ninegag_notion_scraper.infrastructure.meme_notion.get_memes \
@@ -18,8 +19,6 @@ from .webdriver import get_webdriver
 
 from .app.entities.meme import Meme
 from .app.use_cases.cookies import CookiesUseCase
-from .app.use_cases.get_memes import GetMemes
-from .app.use_cases.save_meme import SaveMeme
 from .infrastructure.cookie_filestorage \
     import FileCookiesRepo
 from .infrastructure.meme_ninegag_scraper import NineGagStreamScraperRepo

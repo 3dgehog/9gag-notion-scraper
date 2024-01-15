@@ -42,6 +42,7 @@ class FileStorageRepo(SaveMemeRepo):
         if update:
             logger.warning("Kwarg 'update' is not implmented in this class")
         self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
+        assert meme.post_file_url
         self._save_meme_from_url(meme.post_file_url, meme.item_id)
 
     def meme_exists(self, meme: Meme) -> bool:
