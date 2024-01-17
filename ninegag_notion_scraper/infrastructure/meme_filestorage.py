@@ -7,7 +7,7 @@ import requests
 import glob
 import logging
 
-from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.entities.meme import DBMeme, PostMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import SaveMemeRepo
 
@@ -38,20 +38,20 @@ class FileStorageRepo(SaveMemeRepo):
         self._selenium_cookies_func = _selenium_cookies_func
         self._cookie_loaded_flag = False
 
-    def save_meme(self, meme: Meme, update=False) -> None:
+    def save_meme(self, meme: PostMeme, update=False) -> None:
         if update:
             logger.warning("Kwarg 'update' is not implmented in this class")
-        self._save_cover_from_url(meme.cover_photo_url, meme.item_id)
+        self._save_cover_from_url(meme.post_cover_photo_url, meme.post_id)
         assert meme.post_file_url
-        self._save_meme_from_url(meme.post_file_url, meme.item_id)
+        self._save_meme_from_url(meme.post_file_url, meme.post_id)
 
-    def meme_exists(self, meme: Meme) -> bool:
-        logger.debug(f"Checking if meme {meme.item_id} exists")
+    def meme_exists(self, meme: PostMeme | DBMeme) -> bool:
+        logger.debug(f"Checking if meme {meme.post_id} exists")
         meme_exists = glob.glob(
-            os.path.join(self.meme_path, f"{meme.item_id}.*")
+            os.path.join(self.meme_path, f"{meme.post_id}.*")
         )
         cover_exists = glob.glob(
-            os.path.join(self.covers_path, f"{meme.item_id}.*")
+            os.path.join(self.covers_path, f"{meme.post_id}.*")
         )
         return all([meme_exists, cover_exists])
 

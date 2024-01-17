@@ -7,9 +7,9 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
-from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.entities.meme import PostMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import GetMemesRepo
+    import GetPostMemesRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 
 from .base import BaseScraperRepo, ScraperNotSetup
@@ -18,7 +18,7 @@ from .element_article import StreamArticle
 logger = logging.getLogger('app.9gag')
 
 
-class NineGagStreamScraperRepo(BaseScraperRepo, GetMemesRepo):
+class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
     """A class that handles all the web scraping on 9gag"""
 
     def __init__(self,
@@ -38,7 +38,7 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetMemesRepo):
         self._list_view: WebElement
         self._current_stream_num = 0
 
-    def get_memes(self) -> List[Meme]:
+    def get_memes(self) -> List[PostMeme]:
         """Return memes from current stream"""
         if not self._is_setup:
             raise ScraperNotSetup
@@ -61,13 +61,13 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetMemesRepo):
 
                 url = StreamArticle.get_url_from_article(article)
 
-                articledata = Meme(
-                    title=StreamArticle.get_title_from_article(article),
-                    item_id=StreamArticle.get_item_id_from_url(url),
-                    post_web_url=url,
-                    tags=StreamArticle.get_tags_from_article(article),
-                    cover_photo_url=StreamArticle.get_cover_photo_from_article(
-                        article),
+                articledata = PostMeme(
+                    post_title=StreamArticle.get_title_from_article(article),
+                    post_id=StreamArticle.get_item_id_from_url(url),
+                    post_url=url,
+                    post_tags=StreamArticle.get_tags_from_article(article),
+                    post_cover_photo_url=StreamArticle.
+                    get_cover_photo_from_article(article),
                     post_file_url=StreamArticle.get_file_url_from_article(
                         article)
                 )

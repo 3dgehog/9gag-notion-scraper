@@ -64,7 +64,7 @@ class PostURLConverter(Converter):
         return data['properties']['URL']['url']
 
 
-class TagsConverter(Converter):
+class PostTagsConverter(Converter):
     @classmethod
     def encode(cls, tags: list) -> dict:
         return {

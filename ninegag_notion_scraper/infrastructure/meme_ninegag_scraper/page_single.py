@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
 
-from ninegag_notion_scraper.app.entities.meme import Meme
+from ninegag_notion_scraper.app.entities.meme import PostMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import GetMemeRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
@@ -27,7 +27,7 @@ class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
         BaseScraperRepo.__init__(self, username, password, web_driver,
                                  cookie_usecase, **kwargs)
 
-    def get_meme_from_url(self, url: str) -> Meme:
+    def get_meme_from_url(self, url: str) -> PostMeme:
         if not self._is_setup:
             raise ScraperNotSetup
 
@@ -48,13 +48,13 @@ class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
             logger.error("Unable to find article element on page")
             raise
 
-        return Meme(
-            title=SinglePageArticle.get_title_from_article(article),
-            item_id=SinglePageArticle.get_item_id_from_url(url),
-            post_web_url=url,
-            tags=SinglePageArticle.get_tags_from_article(article),
-            cover_photo_url=SinglePageArticle.get_cover_photo_from_article(
-                article),
+        return PostMeme(
+            post_title=SinglePageArticle.get_title_from_article(article),
+            post_id=SinglePageArticle.get_item_id_from_url(url),
+            post_url=url,
+            post_tags=SinglePageArticle.get_tags_from_article(article),
+            post_cover_photo_url=SinglePageArticle.
+            get_cover_photo_from_article(article),
             post_file_url=SinglePageArticle.get_file_url_from_article(article)
         )
 
