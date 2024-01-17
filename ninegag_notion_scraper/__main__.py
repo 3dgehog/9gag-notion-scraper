@@ -105,6 +105,7 @@ def memes_from_9gag_to_notion_with_local_save(
 
         except StopLoopException:
             logger.debug("Loop stopped by evaluate_storage")
+            break
 
 
 def evaluate_storage(args: Arguments,
