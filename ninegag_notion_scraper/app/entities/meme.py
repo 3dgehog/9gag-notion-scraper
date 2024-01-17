@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -14,5 +15,5 @@ class PostMeme(BaseMeme):
 
 
 class DBMeme(BaseMeme):
-    note: str
+    note: Optional[str]
     tags: list

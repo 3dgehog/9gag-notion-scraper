@@ -7,8 +7,9 @@ from ninegag_notion_scraper.app.interfaces.repositories.meme \
 from ninegag_notion_scraper.infrastructure.meme_notion.base import NotionBase
 
 
-from .converters import PageNameConverter, ItemIDConverter, PostURLConverter, \
-    PostTagsConverter, CoverURLConverter
+from .converters import PostTitleConverter, PostIDConverter, \
+    PostURLConverter, PostTagsConverter, PostCoverURLConverter, \
+    TagsConverter, NoteConverter
 
 
 class NotionGetMemes(NotionBase, GetDBMemesRepo):
@@ -36,13 +37,13 @@ class NotionGetMemes(NotionBase, GetDBMemesRepo):
 
         for page in pages:
             memes.append(DBMeme(
-                post_title=PageNameConverter.decode(page),
-                post_id=ItemIDConverter.decode(page),
+                post_title=PostTitleConverter.decode(page),
+                post_id=PostIDConverter.decode(page),
                 post_url=PostURLConverter.decode(page),
                 post_tags=PostTagsConverter.decode(page),
-                post_cover_photo_url=CoverURLConverter.decode(page),
-                note='hello',
-                tags=[]
+                post_cover_photo_url=PostCoverURLConverter.decode(page),
+                note=NoteConverter.decode(page),
+                tags=TagsConverter.decode(page)
             ))
 
         self._next_cursor = query['next_cursor']

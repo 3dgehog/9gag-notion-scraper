@@ -10,8 +10,8 @@ from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import SaveMemeRepo
 
 from .base import Properties, NotionBase
-from .converters import ItemIDConverter, PageNameConverter, PostURLConverter, \
-    PostTagsConverter, CoverURLConverter
+from .converters import PostIDConverter, PostTitleConverter, \
+    PostURLConverter, PostTagsConverter, PostCoverURLConverter
 
 
 logger = logging.getLogger("app.notion")
@@ -81,11 +81,11 @@ class NotionSaveMeme(NotionBase, SaveMemeRepo):
                      cover_photo):
         self._client.pages.update(
             page_id=page_id,
-            cover=CoverURLConverter.encode(cover_photo),
+            cover=PostCoverURLConverter.encode(cover_photo),
             properties={
-                **PageNameConverter.encode(name),
+                **PostTitleConverter.encode(name),
                 **PostURLConverter.encode(url),
-                **ItemIDConverter.encode(post_id),
+                **PostIDConverter.encode(post_id),
                 **PostTagsConverter.encode(post_section)
             }
         )
@@ -94,11 +94,11 @@ class NotionSaveMeme(NotionBase, SaveMemeRepo):
     def _create_page(self, name, post_id, url, post_section, cover_photo):
         self._client.pages.create(
             parent={"database_id": self._db_id},
-            cover=CoverURLConverter.encode(cover_photo),
+            cover=PostCoverURLConverter.encode(cover_photo),
             properties={
-                **PageNameConverter.encode(name),
+                **PostTitleConverter.encode(name),
                 **PostURLConverter.encode(url),
-                **ItemIDConverter.encode(post_id),
+                **PostIDConverter.encode(post_id),
                 **PostTagsConverter.encode(post_section)
             }
         )
