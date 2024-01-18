@@ -1,5 +1,5 @@
 import copy
-from typing import Awaitable, List
+from typing import Awaitable, List, Optional
 from notion_client import Client
 from ninegag_notion_scraper.app.entities.meme import DBMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
@@ -7,7 +7,7 @@ from ninegag_notion_scraper.app.interfaces.repositories.meme \
 from ninegag_notion_scraper.infrastructure.meme_notion.base import NotionBase
 
 
-from .converters import PostTitleConverter, PostIDConverter, \
+from .converters import PageIDConverter, PostTitleConverter, PostIDConverter, \
     PostURLConverter, PostTagsConverter, PostCoverURLConverter, \
     TagsConverter, NoteConverter
 
@@ -21,14 +21,26 @@ class NotionGetMemes(NotionBase, GetDBMemesRepo):
         self._has_more = None
         self._next_count = 0
 
-    def get_memes(self) -> List[DBMeme]:
+    def get_memes(self, filter: Optional[dict]) -> List[DBMeme]:
         if self._current_cursor:
-            query = self._client.databases.query(
-                self._db_id,
-                start_cursor=self._current_cursor
-            )
+            if filter:
+                query = self._client.databases.query(
+                    self._db_id,
+                    start_cursor=self._current_cursor,
+                    filter=filter
+                )
+            else:
+                query = self._client.databases.query(
+                    self._db_id,
+                    start_cursor=self._current_cursor
+                )
+
         else:
-            query = self._client.databases.query(self._db_id)
+            if filter:
+                query = self._client.databases.query(self._db_id,
+                                                     filter=filter)
+            else:
+                query = self._client.databases.query(self._db_id)
 
         assert not isinstance(query, Awaitable)
         pages: list = query.get('results')
@@ -42,6 +54,7 @@ class NotionGetMemes(NotionBase, GetDBMemesRepo):
                 post_url=PostURLConverter.decode(page),
                 post_tags=PostTagsConverter.decode(page),
                 post_cover_photo_url=PostCoverURLConverter.decode(page),
+                id=PageIDConverter.decode(page),
                 note=NoteConverter.decode(page),
                 tags=TagsConverter.decode(page)
             ))

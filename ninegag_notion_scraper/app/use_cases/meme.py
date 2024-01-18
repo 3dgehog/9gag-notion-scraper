@@ -1,13 +1,17 @@
+import logging
 from validators import url as validate_url
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 from ninegag_notion_scraper.app.entities.meme import DBMeme, PostMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import GetMemeRepo
+    import GetMemeRepo, UpdateMemeRepo
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import SaveMemeRepo
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
     import GetPostMemesRepo, GetDBMemesRepo
+
+
+logger = logging.getLogger('app.uc')
 
 
 class GetPostMemes:
@@ -49,10 +53,22 @@ class GetDBMemes:
     def __init__(self, memes_repo: GetDBMemesRepo) -> None:
         self.memes_repo = memes_repo
 
-    def get_memes(self) -> Generator[List[DBMeme], None, None]:
+    def get_memes(self,
+                  filter: Optional[dict] = None
+                  ) -> Generator[List[DBMeme], None, None]:
         while not self.memes_repo.at_end:
-            memes_entities = self.memes_repo.get_memes()
+            memes_entities = self.memes_repo.get_memes(filter=filter)
 
             yield memes_entities
 
             self.memes_repo.next()
+
+
+class UpdateMeme:
+    def __init__(self, meme_repo: UpdateMemeRepo) -> None:
+        self.meme_repo = meme_repo
+
+    def update_meme(self, id: str, tags: list):
+
+        logger.debug(f"Meme from id: '{id}' updated tags to: {tags}")
+        self.meme_repo.update_meme(id=id, tags=tags)

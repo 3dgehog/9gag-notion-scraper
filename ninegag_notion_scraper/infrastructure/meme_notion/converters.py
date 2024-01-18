@@ -149,3 +149,9 @@ class NoteConverter(Converter):
         except IndexError:
             return None
         return n
+
+
+class PageIDConverter(Converter):
+    @staticmethod
+    def decode(data: dict) -> str:
+        return data['id']

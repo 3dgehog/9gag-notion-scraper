@@ -15,5 +15,6 @@ class PostMeme(BaseMeme):
 
 
 class DBMeme(BaseMeme):
+    id: str
     note: Optional[str]
     tags: list

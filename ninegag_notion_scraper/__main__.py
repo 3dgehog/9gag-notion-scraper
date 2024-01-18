@@ -6,7 +6,7 @@ from notion_client import Client as NotionClient
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from ninegag_notion_scraper.app.use_cases.meme import GetDBMemes, \
-    GetPostMeme, GetPostMemes, SavePostMeme
+    GetPostMeme, GetPostMemes, SavePostMeme, UpdateMeme
 from ninegag_notion_scraper.infrastructure.meme_ninegag_scraper.page_single \
     import Meme404, NineGagSinglePageScraperRepo
 from ninegag_notion_scraper.infrastructure.meme_notion.get_memes \
@@ -37,8 +37,9 @@ def main(args: Arguments, envs: Environments,
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
 
     if args.save_notion_meme_locally:
-        notion = NotionGetMemes(NotionClient(
-            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE)
+        notion_client = NotionClient(auth=envs.NOTION_TOKEN)
+        notion_get = NotionGetMemes(notion_client, envs.NOTION_DATABASE)
+        notion_update = NotionSaveMeme(notion_client, envs.NOTION_DATABASE)
         file_storage = FileStorageRepo(
             covers_path=envs.COVERS_PATH,
             memes_path=envs.MEMES_PATH,
@@ -52,7 +53,8 @@ def main(args: Arguments, envs: Environments,
         )
         with ninegag:
             memes_from_notion_to_save_locally(
-                notion=GetDBMemes(notion),
+                notion_get=GetDBMemes(notion_get),
+                notion_update=UpdateMeme(notion_update),
                 file_storage=SavePostMeme(file_storage),
                 ninegag=GetPostMeme(ninegag),
                 args=args
@@ -127,12 +129,21 @@ def evaluate_storage(args: Arguments,
 
 
 def memes_from_notion_to_save_locally(
-        notion: GetDBMemes,
+        notion_get: GetDBMemes,
+        notion_update: UpdateMeme,
         file_storage: SavePostMeme,
         ninegag: GetPostMeme,
         args: Arguments
 ):
-    for memes in notion.get_memes():
+
+    filter = {
+        "property": "Tags",
+        "multi_select": {
+            "does_not_contain": "Meme404"
+        }
+    }
+
+    for memes in notion_get.get_memes(filter=filter):
         try:
             for meme in memes:
                 if not file_storage.meme_exists(meme):
@@ -145,6 +156,7 @@ def memes_from_notion_to_save_locally(
                         logger.info(
                             f"skipping Meme ID {meme.post_id} because it "
                             "doesn't exist anymore")
+                        notion_update.update_meme(meme.id, tags=['Meme404'])
                         continue
 
                     evaluate_storage(args, loaded_meme, file_storage)

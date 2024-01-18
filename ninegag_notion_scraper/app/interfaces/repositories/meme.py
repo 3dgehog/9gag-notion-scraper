@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 
 from ninegag_notion_scraper.app.entities.meme import PostMeme, DBMeme
@@ -31,7 +31,7 @@ class GetDBMemesRepo(ABC):
     at_end: bool
 
     @abstractmethod
-    def get_memes(self) -> List[DBMeme]:
+    def get_memes(self, filter: Optional[dict]) -> List[DBMeme]:
         raise NotImplementedError
 
     @abstractmethod
@@ -56,4 +56,14 @@ class GetMemeRepo(ABC):
 
     @abstractmethod
     def get_meme_from_url(self, url: str) -> PostMeme:
+        ...
+
+
+class UpdateMemeRepo(ABC):
+    @abstractmethod
+    def update_meme(self, id: str, tags: list) -> None:
+        ...
+
+    @abstractmethod
+    def meme_exists(self, meme: PostMeme | DBMeme) -> bool:
         ...

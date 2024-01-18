@@ -7,17 +7,17 @@ from retry import retry
 
 from ninegag_notion_scraper.app.entities.meme import DBMeme, PostMeme
 from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import SaveMemeRepo
+    import SaveMemeRepo, UpdateMemeRepo
 
 from .base import Properties, NotionBase
 from .converters import PostIDConverter, PostTitleConverter, \
-    PostURLConverter, PostTagsConverter, PostCoverURLConverter
+    PostURLConverter, PostTagsConverter, PostCoverURLConverter, TagsConverter
 
 
 logger = logging.getLogger("app.notion")
 
 
-class NotionSaveMeme(NotionBase, SaveMemeRepo):
+class NotionSaveMeme(NotionBase, SaveMemeRepo, UpdateMemeRepo):
     def __init__(self, client: Client, database_id: str) -> None:
         NotionBase.__init__(self, client, database_id)
 
@@ -43,6 +43,14 @@ class NotionSaveMeme(NotionBase, SaveMemeRepo):
 
     def meme_exists(self, meme: PostMeme | DBMeme) -> bool:
         return all([self._exists(meme.post_id)])
+
+    def update_meme(self, id: str, tags: list) -> None:
+        self._client.pages.update(
+            page_id=id,
+            properties={
+                **TagsConverter.encode(tags)
+            }
+        )
 
     @retry(exceptions=APIResponseError, tries=5, delay=30, backoff=2)
     def _exists(self, post_id: str) -> Optional[dict]:

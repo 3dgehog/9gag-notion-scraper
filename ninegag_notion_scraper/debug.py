@@ -11,7 +11,7 @@ def main(args: Arguments, envs: Environments):
     notion = NotionGetMemes(NotionClient(
         auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE)
 
-    memes = notion.get_memes()
+    memes = notion.get_memes(filter=None)
 
     for meme in memes:
         print(meme)
