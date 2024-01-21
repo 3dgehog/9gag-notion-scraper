@@ -7,23 +7,23 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from ninegag_notion_scraper.app.use_cases.meme import GetDBMemes, \
     GetPostMeme, GetPostMemes, SavePostMeme, UpdateMeme
-from ninegag_notion_scraper.infrastructure.meme_ninegag_scraper.page_single \
+from ninegag_notion_scraper.infra.repo.meme_ninegag_scraper.page_single \
     import Meme404, NineGagSinglePageScraperRepo
-from ninegag_notion_scraper.infrastructure.meme_notion.get_memes \
+from ninegag_notion_scraper.infra.repo.meme_notion.get_memes \
     import NotionGetMemes
 
 # Setup tools
 from .env import Environments, get_envs
-from .cli import Arguments, get_args
-from .webdriver import get_webdriver
+from .args import Arguments, get_args
 
+from .infra.webdriver import get_webdriver
 from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
-from .infrastructure.cookie_filestorage \
+from .infra.repo.cookie_filestorage \
     import FileCookiesRepo
-from .infrastructure.meme_ninegag_scraper import NineGagStreamScraperRepo
-from .infrastructure.meme_notion import NotionSaveMeme
-from .infrastructure.meme_filestorage import FileStorageRepo
+from .infra.repo.meme_ninegag_scraper import NineGagStreamScraperRepo
+from .infra.repo.meme_notion import NotionSaveMeme
+from .infra.repo.meme_filestorage import FileStorageRepo
 
 logger = logging.getLogger('app')
 

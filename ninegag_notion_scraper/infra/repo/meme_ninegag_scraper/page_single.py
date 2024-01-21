@@ -5,7 +5,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 from ninegag_notion_scraper.app.entities.meme import PostMeme
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
+from ninegag_notion_scraper.app.interfaces.meme_repo \
     import GetMemeRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 

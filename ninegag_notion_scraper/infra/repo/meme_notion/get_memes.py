@@ -2,11 +2,10 @@ import copy
 from typing import Awaitable, List, Optional
 from notion_client import Client
 from ninegag_notion_scraper.app.entities.meme import DBMeme
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
+from ninegag_notion_scraper.app.interfaces.meme_repo \
     import GetDBMemesRepo
-from ninegag_notion_scraper.infrastructure.meme_notion.base import NotionBase
 
-
+from .base import NotionBase
 from .converters import PageIDConverter, PostTitleConverter, PostIDConverter, \
     PostURLConverter, PostTagsConverter, PostCoverURLConverter, \
     TagsConverter, NoteConverter

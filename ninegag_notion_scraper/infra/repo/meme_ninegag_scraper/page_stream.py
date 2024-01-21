@@ -8,7 +8,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
 from ninegag_notion_scraper.app.entities.meme import PostMeme
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
+from ninegag_notion_scraper.app.interfaces.meme_repo \
     import GetPostMemesRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 

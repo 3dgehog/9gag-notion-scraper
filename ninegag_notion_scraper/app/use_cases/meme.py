@@ -3,12 +3,8 @@ from validators import url as validate_url
 from typing import Generator, List, Optional
 
 from ninegag_notion_scraper.app.entities.meme import DBMeme, PostMeme
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import GetMemeRepo, UpdateMemeRepo
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import SaveMemeRepo
-from ninegag_notion_scraper.app.interfaces.repositories.meme \
-    import GetPostMemesRepo, GetDBMemesRepo
+from ninegag_notion_scraper.app.interfaces.meme_repo import GetMemeRepo, \
+    UpdateMemeRepo, SaveMemeRepo, GetPostMemesRepo, GetDBMemesRepo
 
 
 logger = logging.getLogger('app.uc')

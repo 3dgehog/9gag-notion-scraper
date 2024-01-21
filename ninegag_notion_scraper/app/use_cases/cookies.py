@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from ninegag_notion_scraper.app.interfaces.repositories.cookie \
+from ninegag_notion_scraper.app.interfaces.cookie_repo \
     import CookieRepo
 
 
