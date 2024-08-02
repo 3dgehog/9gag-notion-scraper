@@ -2,7 +2,7 @@ from selenium import webdriver
 from latest_user_agents import get_latest_user_agents
 
 
-def get_webdriver() -> webdriver.Chrome:
+def get_webdriver_chrome() -> webdriver.Chrome:
     chrome_options = webdriver.ChromeOptions()
 
     # Headless
@@ -17,5 +17,15 @@ def get_webdriver() -> webdriver.Chrome:
     #     command_executor='http://172.30.0.4:4444',
     #     options=chrome_options
     # )
+
+    return WEB_DRIVER
+
+
+def get_webdriver_firefox() -> webdriver.Firefox:
+    firefox_options = webdriver.FirefoxOptions()
+
+    # firefox_options.add_argument(f"user-agent={get_latest_user_agents()[1]}")
+
+    WEB_DRIVER = webdriver.Firefox(options=firefox_options)
 
     return WEB_DRIVER

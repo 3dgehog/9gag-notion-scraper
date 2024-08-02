@@ -16,7 +16,7 @@ from ninegag_notion_scraper.infra.repo.meme_notion.get_memes \
 from .env import Environments, get_envs
 from .args import Arguments, get_args
 
-from .infra.webdriver import get_webdriver
+from .infra.webdriver import get_webdriver_chrome
 from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
 from .infra.repo.cookie_filestorage \
@@ -175,4 +175,4 @@ if __name__ == '__main__':
         debug(args, envs)
         quit()
 
-    main(args=args, envs=envs, get_webdriver=get_webdriver)
+    main(args=args, envs=envs, get_webdriver=get_webdriver_chrome)

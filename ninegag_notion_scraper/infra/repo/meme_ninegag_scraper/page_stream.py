@@ -151,7 +151,7 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
     def _scroll_to_spinner(self):
         element = self._get_loader_element()
         actions = ActionChains(self.web_driver)
-        actions.move_to_element(element).perform()
+        actions.scroll_to_element(element).perform()
         time.sleep(self.sleep)
 
     def _get_loader_element(self) -> WebElement:
