@@ -29,3 +29,16 @@ def get_webdriver_firefox() -> webdriver.Firefox:
     WEB_DRIVER = webdriver.Firefox(options=firefox_options)
 
     return WEB_DRIVER
+
+
+def get_webbrowser_brave() -> webdriver.Chrome:
+    brave_options = webdriver.ChromeOptions()
+
+    brave_options.binary_location = \
+        '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+
+    # service = Service('/chromedriver')
+
+    WEB_DRIVER = webdriver.Chrome(options=brave_options)
+
+    return WEB_DRIVER
