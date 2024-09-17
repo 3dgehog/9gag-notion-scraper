@@ -122,7 +122,7 @@ def evaluate_storage(args: Arguments,
                     "already exists")
         return
 
-    if args.stop_existing and exists:
+    if not args.ignore_existing and exists:
         raise StopLoopException  # stop the outer loop
 
     storage.save_meme(meme)
