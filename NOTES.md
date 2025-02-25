@@ -33,5 +33,5 @@ pipenv run app
 - [x] Skip if already exists
 - [x] Stop when found meme that exists
 - [x] Use selenium session cookies to download content
-- [ ] Add a peronal WebDAV link to notion page
+- [ ] Add a personal WebDAV link to notion page
 - [ ] Detected when logged out again (like page can be accessed without logging in)
