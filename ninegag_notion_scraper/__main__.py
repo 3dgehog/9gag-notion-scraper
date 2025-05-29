@@ -1,6 +1,7 @@
 """The main function"""
 
 import logging
+import time
 from typing import Callable
 from notion_client import Client as NotionClient
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -16,7 +17,8 @@ from ninegag_notion_scraper.infra.repo.meme_notion.get_memes \
 from .env import Environments, get_envs
 from .args import Arguments, get_args
 
-from .infra.webdriver import get_webbrowser_brave
+from .infra.webdriver import get_webbrowser_brave_locally_mac, \
+    get_webdriver_firefox_remote
 from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
 from .infra.repo.cookie_filestorage \
@@ -32,14 +34,18 @@ def main(args: Arguments, envs: Environments,
          get_webdriver: Callable[[], WebDriver]) -> None:
     """The entry point to the application"""
 
-    webdriver = get_webdriver()
-
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
+
+    logger.debug("Initializing WebDriver")
+    webdriver = get_webdriver()
+    logger.debug("WebDriver initialized")
 
     if args.save_notion_meme_locally:
         notion_client = NotionClient(auth=envs.NOTION_TOKEN)
-        notion_get = NotionGetMemes(notion_client, envs.NOTION_DATABASE)
-        notion_update = NotionSaveMeme(notion_client, envs.NOTION_DATABASE)
+        notion_get = NotionGetMemes(
+            notion_client, envs.NOTION_DATABASE)
+        notion_update = NotionSaveMeme(
+            notion_client, envs.NOTION_DATABASE)
         file_storage = FileStorageRepo(
             covers_path=envs.COVERS_PATH,
             memes_path=envs.MEMES_PATH,
@@ -59,7 +65,6 @@ def main(args: Arguments, envs: Environments,
                 ninegag=GetPostMeme(ninegag),
                 args=args
             )
-        return
 
     ninegag_scraper_repo = NineGagStreamScraperRepo(
         envs.NINEGAG_URL,
@@ -80,7 +85,6 @@ def main(args: Arguments, envs: Environments,
     )
 
     with ninegag_scraper_repo:
-
         memes_from_9gag_to_notion_with_local_save(
             ninegag=GetPostMemes(ninegag_scraper_repo),
             notion=SavePostMeme(notion_storage_repo),
@@ -98,6 +102,8 @@ def memes_from_9gag_to_notion_with_local_save(
         notion: SavePostMeme,
         file_storage: SavePostMeme,
         args: Arguments) -> None:
+
+    logger.debug("Starting to scrape memes from 9GAG")
 
     for memes in ninegag.get_memes():
         try:
@@ -135,6 +141,7 @@ def memes_from_notion_to_save_locally(
         ninegag: GetPostMeme,
         args: Arguments
 ):
+    logger.debug("Starting to scrape memes from Notion")
 
     filter = {
         "property": "Tags",
@@ -170,9 +177,34 @@ if __name__ == '__main__':
     args = get_args()
     envs = get_envs()
 
-    if args.debug:
-        from .debug import main as debug
-        debug(args, envs)
-        quit()
+    logger.setLevel(envs.LOG_LEVEL)
+    logger.debug(f"Log level set to {envs.LOG_LEVEL}")
 
-    main(args=args, envs=envs, get_webdriver=get_webbrowser_brave)
+    if args.debug:
+        # from .debug import main as debug
+        # debug(args, envs)
+        # quit()
+        pass
+
+    match envs.WEBDRIVER_URL:
+        case '0':
+            logger.info("Using Local Brave WebDriver")
+            get_web_browser = get_webbrowser_brave_locally_mac
+        case _:
+            logger.info(f"Using Remote WebDriver URL: {envs.WEBDRIVER_URL}")
+            get_web_browser = get_webdriver_firefox_remote(envs.WEBDRIVER_URL)
+
+    if envs.RUN_INTERVAL_SECONDS != '0':
+        logger.info(f"Running every {envs.RUN_INTERVAL_SECONDS} seconds")
+        while True:
+            try:
+                main(args, envs, get_web_browser)
+                time.sleep(int(envs.RUN_INTERVAL_SECONDS))
+            except KeyboardInterrupt:
+                logger.info("KeyboardInterrupt received, exiting...")
+                break
+            except Exception as e:
+                logger.error(f"An error occurred: {e}", exc_info=True)
+                time.sleep(int(envs.RUN_INTERVAL_SECONDS))
+    else:
+        main(args, envs, get_web_browser)
