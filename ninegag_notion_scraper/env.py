@@ -9,8 +9,8 @@ class Environments(BaseSettings):
     NINEGAG_PASSWORD: str = Field(default="", alias="PASSWORD", min_length=1)
     NINEGAG_URL: str = Field(default="", alias="9GAG_URL", min_length=1)
     PERSONAL_URL: str = Field(default="172.30.0.10:5000/WebDAV/9gag-memes")
-    COVERS_PATH: str = Field(default="./dump/covers")
-    MEMES_PATH: str = Field(default="./dump/memes")
+    COVERS_PATH: str = Field(default="./covers")
+    MEMES_PATH: str = Field(default="./memes")
     RUN_INTERVAL_SECONDS: str = Field(default="0")
     WEBDRIVER_URL: str = Field(default="0")
     LOG_LEVEL: str = Field(
