@@ -1,20 +1,33 @@
-from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Protocol
 
 
-class Converter(ABC):
+class Converter(Protocol):
+    @classmethod
+    def encode(cls, data: Any) -> dict:
+        """
+        Encodes the given data into a dictionary format suitable for storage
+        or transmission.
+        Args:
+            data (Any): The data to be encoded.
+        Returns:
+            dict: The encoded representation of the input data.
+        """
+        ...
 
     @staticmethod
-    @abstractmethod
-    def encode(data: Any) -> dict:
-        """To send to Notion"""
-        raise NotImplementedError
-
-    @staticmethod
-    @abstractmethod
     def decode(data: dict) -> Any:
-        """To receive from Notion"""
-        raise NotImplementedError
+        """
+        Decodes the given data dictionary into the appropriate object
+        or data structure.
+        Args:
+            data (dict): The data to decode.
+        Returns:
+            Any: The decoded object or data structure.
+        Raises:
+            KeyError: If required keys are missing in the data.
+            ValueError: If the data format is invalid.
+        """
+        ...
 
 
 class PropTypeMultiSelect:
@@ -33,14 +46,14 @@ class PropTypeMultiSelect:
 
 
 class PostIDConverter(Converter):
-    @staticmethod
-    def encode(item_id: str) -> dict:
+    @classmethod
+    def encode(cls, data: str) -> dict:
         return {
             "9gag id": {
                 "rich_text": [{
                     "type": "text",
                     "text": {
-                        "content": item_id
+                        "content": data
                     }
                 }]
             }
@@ -52,13 +65,13 @@ class PostIDConverter(Converter):
 
 
 class PostTitleConverter(Converter):
-    @staticmethod
-    def encode(name: str) -> dict:
+    @classmethod
+    def encode(cls, data: str) -> dict:
         return {
             "Name": {
                 "title": [{
                     "text": {
-                        "content": name
+                        "content": data
                     }
                 }]
             }
@@ -70,9 +83,9 @@ class PostTitleConverter(Converter):
 
 
 class PostURLConverter(Converter):
-    @staticmethod
-    def encode(url: str) -> dict:
-        return {'URL': {"url": url}}
+    @classmethod
+    def encode(cls, data: str) -> dict:
+        return {'URL': {"url": data}}
 
     @staticmethod
     def decode(data: dict) -> Any:
@@ -81,10 +94,10 @@ class PostURLConverter(Converter):
 
 class PostTagsConverter(Converter, PropTypeMultiSelect):
     @classmethod
-    def encode(cls, tags: list) -> dict:
+    def encode(cls, data: list) -> dict:
         return {
             "Post Section": {
-                "multi_select": cls.expand_multi_select(tags)
+                "multi_select": cls.expand_multi_select(data)
             }
         }
 
@@ -97,12 +110,12 @@ class PostTagsConverter(Converter, PropTypeMultiSelect):
 
 
 class PostCoverURLConverter(Converter):
-    @staticmethod
-    def encode(url: str) -> dict:
+    @classmethod
+    def encode(cls, data: str) -> dict:
         return {
             "type": "external",
             "external": {
-                    "url": url
+                    "url": data
             }
         }
 
@@ -113,10 +126,10 @@ class PostCoverURLConverter(Converter):
 
 class TagsConverter(Converter, PropTypeMultiSelect):
     @classmethod
-    def encode(cls, tags: list) -> dict:
+    def encode(cls, data: list) -> dict:
         return {
             "Tags": {
-                "multi_select": cls.expand_multi_select(tags)
+                "multi_select": cls.expand_multi_select(data)
             }
         }
 
@@ -129,14 +142,14 @@ class TagsConverter(Converter, PropTypeMultiSelect):
 
 
 class NoteConverter(Converter):
-    @staticmethod
-    def encode(note: str) -> dict:
+    @classmethod
+    def encode(cls, data: str) -> dict:
         return {
             "Note": {
                 "rich_text": [{
                     "type": "text",
                     "text": {
-                        "content": note
+                        "content": data
                     }
                 }]
             }

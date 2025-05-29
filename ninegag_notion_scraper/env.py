@@ -1,26 +1,28 @@
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Environments(BaseModel):
     NOTION_TOKEN: str
     NOTION_DATABASE: str
-    NINEGAG_USERNAME: str
-    NINEGAG_PASSWORD: str
-    NINEGAG_URL: str
-    PERSONAL_URL: str
-    COVERS_PATH: str
-    MEMES_PATH: str
+    NINEGAG_USERNAME: str = Field(alias="USERNAME")
+    NINEGAG_PASSWORD: str = Field(alias="PASSWORD")
+    NINEGAG_URL: str = Field(alias="9GAG_URL")
+    PERSONAL_URL: str = Field(default="172.30.0.10:5000/WebDAV/9gag-memes")
+    COVERS_PATH: str = Field(default="./dump/covers")
+    MEMES_PATH: str = Field(default="./dump/memes")
+
+    @classmethod
+    def from_env(cls):
+        values = {}
+        for name, field in cls.model_fields.items():
+            env_name = field.alias or name
+            if field.default is not None:
+                values[name] = os.getenv(env_name, field.default)
+            else:
+                values[name] = os.environ[env_name]
+        return cls(**values)
 
 
 def get_envs() -> Environments:
-    return Environments(
-        NOTION_TOKEN=os.environ["NOTION_TOKEN"],
-        NOTION_DATABASE=os.environ["NOTION_DATABASE"],
-        NINEGAG_USERNAME=os.environ['USERNAME'],
-        NINEGAG_PASSWORD=os.environ['PASSWORD'],
-        NINEGAG_URL=os.environ['9GAG_URL'],
-        PERSONAL_URL="172.30.0.10:5000/WebDAV/9gag-memes",
-        COVERS_PATH=os.getenv("COVERS_PATH", "./dump/covers"),
-        MEMES_PATH=os.getenv("MEMES_PATH", "./dump/memes")
-    )
+    return Environments.from_env()

@@ -1,12 +1,22 @@
 import argparse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Arguments(BaseModel):
-    debug: bool
-    skip_existing: bool
-    save_notion_meme_locally: bool
-    ignore_existing: bool
+    debug: bool = Field(default=False)
+    skip_existing: bool = Field(default=False)
+    save_notion_meme_locally: bool = Field(default=False)
+    ignore_existing: bool = Field(default=False)
+
+    @classmethod
+    def from_namespace(cls, ns):
+        # Convert argparse.Namespace to dict and filter only model fields
+        ns_dict = vars(ns)
+        filtered = {
+            name: ns_dict.get(name, field.default)
+            for name, field in cls.__fields__.items()
+        }
+        return cls(**filtered)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -19,11 +29,5 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def get_args() -> Arguments:
-    # return _build_parser().parse_args()
     args = _build_parser().parse_args()
-    return Arguments(
-        debug=args.debug,
-        skip_existing=args.skip_existing,
-        save_notion_meme_locally=args.save_notion_meme_locally,
-        ignore_existing=args.ignore_existing
-    )
+    return Arguments.from_namespace(args)

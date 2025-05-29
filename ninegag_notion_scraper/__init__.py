@@ -1,4 +1,3 @@
-import os
 import logging
 from dotenv import load_dotenv
 
@@ -20,6 +19,3 @@ logger.addHandler(console_handler)
 logger.addHandler(error_file_handler)
 
 load_dotenv()
-
-logger.info('Loading path for webdriver')
-os.environ['PATH'] += r":/Users/maxence/Projects/9gag-notion-scraper"

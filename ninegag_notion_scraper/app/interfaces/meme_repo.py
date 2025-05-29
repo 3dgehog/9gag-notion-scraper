@@ -1,69 +1,53 @@
-from abc import ABC, abstractmethod
-from typing import List, Optional
-from dataclasses import dataclass
+from typing import Protocol, List, Optional
 
 from ninegag_notion_scraper.app.entities.meme import PostMeme, DBMeme
 
 
-@dataclass
-class GetPostMemesRepo(ABC):
+class GetPostMemesRepo(Protocol):
     at_end: bool
 
-    @abstractmethod
     def get_memes(self) -> List[PostMeme]:
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def next(self) -> int:
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def __enter__(self):
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def __exit__(self, exception_type, exception_value, traceback):
-        raise NotImplementedError
+        ...
 
 
-@dataclass
-class GetDBMemesRepo(ABC):
+class GetDBMemesRepo(Protocol):
     at_end: bool
 
-    @abstractmethod
     def get_memes(self, filter: Optional[dict]) -> List[DBMeme]:
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def next(self) -> int:
-        raise NotImplementedError
+        ...
 
 
-class SaveMemeRepo(ABC):
-    @abstractmethod
+class SaveMemeRepo(Protocol):
     def save_meme(self,
                   meme: PostMeme,
                   update: bool = False
                   ) -> None:
         ...
 
-    @abstractmethod
     def meme_exists(self, meme: PostMeme | DBMeme) -> bool:
         ...
 
 
-class GetMemeRepo(ABC):
-
-    @abstractmethod
+class GetMemeRepo(Protocol):
     def get_meme_from_url(self, url: str) -> PostMeme:
         ...
 
 
-class UpdateMemeRepo(ABC):
-    @abstractmethod
+class UpdateMemeRepo(Protocol):
     def update_meme(self, id: str, tags: list) -> None:
         ...
 
-    @abstractmethod
     def meme_exists(self, meme: PostMeme | DBMeme) -> bool:
         ...
