@@ -2,7 +2,8 @@ import time
 import logging
 from typing import List
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, \
+    MoveTargetOutOfBoundsException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -37,6 +38,7 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
         self._at_bottom_flag = self.at_end
         self._list_view: WebElement
         self._current_stream_num = 0
+        self._scroll_to_spinner_error_flag = False
 
     def get_memes(self) -> List[PostMeme]:
         """Return memes from current stream"""
@@ -86,7 +88,18 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
             return self._current_stream_num
 
         self._current_stream_num += 1
-        self._scroll_to_spinner()
+
+        if not self._scroll_to_spinner_error_flag:
+            try:
+                self._scroll_to_spinner()
+            except MoveTargetOutOfBoundsException:
+                logger.warning("Seems like this browser window is too small "
+                               "to scroll directly to the spinner element, "
+                               "trying a different approach")
+                self._scroll_until_stream_num_exists(self._current_stream_num)
+                self._scroll_to_spinner_error_flag = True
+        else:
+            self._scroll_until_stream_num_exists(self._current_stream_num)
 
         if not self._is_loader_spinning():
             self._at_bottom_flag = True
@@ -129,9 +142,7 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
                 By.CSS_SELECTOR,
                 f'#stream-{stream_num}')
         except NoSuchElementException as error:
-            logger.warning(f"Unable to find stream {stream_num}" +
-                           f"{self._list_view.get_attribute('outerHTML')}"
-                           )
+            logger.warning(f"Unable to find stream {stream_num}")
             raise error
 
         return stream
@@ -140,7 +151,7 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
         try:
             self._get_stream(stream_num)
         except NoSuchElementException:
-            logger.info("End of the page reached")
+            logger.debug("This stream number does not exist: %s", stream_num)
             return False
         return True
 
@@ -148,11 +159,35 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
         self.web_driver.execute_script(f"window.scrollBy(0,{scroll})", "")
         time.sleep(self.sleep)
 
+    def _scroll_to_bottom_of_viewable_area(self):
+        """Scrolls to the bottom of the viewable area"""
+        self.web_driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
+
     def _scroll_to_spinner(self):
         element = self._get_loader_element()
         actions = ActionChains(self.web_driver)
         actions.scroll_to_element(element).perform()
         time.sleep(self.sleep)
+
+    def _scroll_until_stream_num_exists(self,
+                                        stream_num: int,
+                                        max_attempts: int = 30):
+        """Scrolls until the stream number exists or max_attempts is reached"""
+        logger.debug("Scrolling until stream %s exists", stream_num)
+        attempts = 0
+        max = max_attempts
+        while not self._does_stream_num_exists(stream_num) and attempts < max:
+            self._scroll_to_bottom_of_viewable_area()
+            attempts += 1
+            logger.debug(
+                "Scrolled to bottom of viewable area, atempts: %s", attempts)
+
+        if self._does_stream_num_exists(stream_num):
+            logger.info(f"Found stream {stream_num} on page")
+        else:
+            logger.warning(
+                f"Stream {stream_num} not found after {max_attempts} attempts")
 
     def _get_loader_element(self) -> WebElement:
         try:
