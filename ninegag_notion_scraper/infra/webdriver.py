@@ -27,3 +27,14 @@ def get_webdriver_firefox_remote(url: str):
         return WEB_DRIVER
 
     return get_webbroswer
+
+
+def get_webbrowser_firefox_locally():
+    firefox_options = webdriver.FirefoxOptions()
+
+    firefox_options.add_argument(
+        f"user-agent={get_latest_user_agents()[1]}")
+
+    WEB_DRIVER = webdriver.Firefox(options=firefox_options)
+
+    return WEB_DRIVER

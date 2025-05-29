@@ -17,8 +17,8 @@ from ninegag_notion_scraper.infra.repo.meme_notion.get_memes \
 from .env import Environments, get_envs
 from .args import Arguments, get_args
 
-from .infra.webdriver import get_webbrowser_brave_locally_mac, \
-    get_webdriver_firefox_remote
+from .infra.webdriver import \
+    get_webdriver_firefox_remote, get_webbrowser_firefox_locally
 from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
 from .infra.repo.cookie_filestorage \
@@ -35,62 +35,70 @@ def main(args: Arguments, envs: Environments,
     """The entry point to the application"""
 
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
+    webdriver = None
 
-    logger.debug("Initializing WebDriver")
-    webdriver = get_webdriver()
-    logger.debug("WebDriver initialized")
+    try:
+        logger.debug("Initializing WebDriver")
+        webdriver = get_webdriver()
+        logger.debug("WebDriver initialized")
 
-    if args.save_notion_meme_locally:
-        notion_client = NotionClient(auth=envs.NOTION_TOKEN)
-        notion_get = NotionGetMemes(
-            notion_client, envs.NOTION_DATABASE)
-        notion_update = NotionSaveMeme(
-            notion_client, envs.NOTION_DATABASE)
-        file_storage = FileStorageRepo(
-            covers_path=envs.COVERS_PATH,
-            memes_path=envs.MEMES_PATH,
-            _selenium_cookies_func=cookie_usecase.get_cookies
-        )
-        ninegag = NineGagSinglePageScraperRepo(
+        if args.save_notion_meme_locally:
+            notion_client = NotionClient(auth=envs.NOTION_TOKEN)
+            notion_get = NotionGetMemes(
+                notion_client, envs.NOTION_DATABASE)
+            notion_update = NotionSaveMeme(
+                notion_client, envs.NOTION_DATABASE)
+            file_storage = FileStorageRepo(
+                covers_path=envs.COVERS_PATH,
+                memes_path=envs.MEMES_PATH,
+                _selenium_cookies_func=cookie_usecase.get_cookies
+            )
+            ninegag = NineGagSinglePageScraperRepo(
+                envs.NINEGAG_USERNAME,
+                envs.NINEGAG_PASSWORD,
+                webdriver,
+                cookie_usecase
+            )
+            with ninegag:
+                memes_from_notion_to_save_locally(
+                    notion_get=GetDBMemes(notion_get),
+                    notion_update=UpdateMeme(notion_update),
+                    file_storage=SavePostMeme(file_storage),
+                    ninegag=GetPostMeme(ninegag),
+                    args=args
+                )
+
+        ninegag_scraper_repo = NineGagStreamScraperRepo(
+            envs.NINEGAG_URL,
             envs.NINEGAG_USERNAME,
             envs.NINEGAG_PASSWORD,
             webdriver,
             cookie_usecase
         )
-        with ninegag:
-            memes_from_notion_to_save_locally(
-                notion_get=GetDBMemes(notion_get),
-                notion_update=UpdateMeme(notion_update),
-                file_storage=SavePostMeme(file_storage),
-                ninegag=GetPostMeme(ninegag),
+
+        notion_storage_repo = NotionSaveMeme(NotionClient(
+            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
+        )
+
+        filestorage_repo = FileStorageRepo(
+            covers_path=envs.COVERS_PATH,
+            memes_path=envs.MEMES_PATH,
+            _selenium_cookies_func=cookie_usecase.get_cookies
+        )
+
+        with ninegag_scraper_repo:
+            memes_from_9gag_to_notion_with_local_save(
+                ninegag=GetPostMemes(ninegag_scraper_repo),
+                notion=SavePostMeme(notion_storage_repo),
+                file_storage=SavePostMeme(filestorage_repo),
                 args=args
             )
-
-    ninegag_scraper_repo = NineGagStreamScraperRepo(
-        envs.NINEGAG_URL,
-        envs.NINEGAG_USERNAME,
-        envs.NINEGAG_PASSWORD,
-        webdriver,
-        cookie_usecase
-    )
-
-    notion_storage_repo = NotionSaveMeme(NotionClient(
-        auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
-    )
-
-    filestorage_repo = FileStorageRepo(
-        covers_path=envs.COVERS_PATH,
-        memes_path=envs.MEMES_PATH,
-        _selenium_cookies_func=cookie_usecase.get_cookies
-    )
-
-    with ninegag_scraper_repo:
-        memes_from_9gag_to_notion_with_local_save(
-            ninegag=GetPostMemes(ninegag_scraper_repo),
-            notion=SavePostMeme(notion_storage_repo),
-            file_storage=SavePostMeme(filestorage_repo),
-            args=args
-        )
+    except Exception as e:
+        logger.error(f"An error occurred: {e}", exc_info=True)
+        if webdriver:
+            logger.debug("Detected a WebDriver instance, Quitting instance")
+            webdriver.quit()
+            logger.debug("WebDriver quit successfully")
 
 
 class StopLoopException(Exception):
@@ -189,7 +197,7 @@ if __name__ == '__main__':
     match envs.WEBDRIVER_URL:
         case '0':
             logger.info("Using Local Brave WebDriver")
-            get_web_browser = get_webbrowser_brave_locally_mac
+            get_web_browser = get_webbrowser_firefox_locally
         case _:
             logger.info(f"Using Remote WebDriver URL: {envs.WEBDRIVER_URL}")
             get_web_browser = get_webdriver_firefox_remote(envs.WEBDRIVER_URL)

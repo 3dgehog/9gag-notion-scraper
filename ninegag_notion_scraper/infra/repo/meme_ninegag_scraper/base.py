@@ -54,7 +54,12 @@ class BaseScraperRepo:
         self._load_cookies()
         self.web_driver.get(url)
 
+        time.sleep(self.sleep)
+
         self._accept_cookie_dialog()
+        self._accept_value_your_privacy_dialog()
+
+        time.sleep(self.sleep)
 
         if not self._login_flag:
             if not self._is_logged_in():
@@ -70,14 +75,52 @@ class BaseScraperRepo:
         try:
             dialog = self.web_driver.find_element(
                 By.CSS_SELECTOR, '#qc-cmp2-ui')
+            logger.debug("Found Cookie Dialog")
         except NoSuchElementException:
+            logger.debug("Cookie Dialog not found")
             return
 
         accept_button = dialog.find_element(
             By.CSS_SELECTOR,
             'div.qc-cmp2-footer.qc-cmp2-footer-overlay.qc-cmp2-footer-scrolled'
             ' > div > button.css-1k47zha')
+        logger.debug("Clicking Accept button on Cookie Dialog")
         accept_button.click()
+
+    def _accept_value_your_privacy_dialog(self):
+        try:
+            iframe_element = self.web_driver.find_element(
+                By.CSS_SELECTOR, "iframe[id^='sp_message_iframe']")
+            logger.debug("Found Value Your Privacy Dialog iFrame")
+
+        except NoSuchElementException:
+            logger.debug("Value Your Privacy Dialog not found")
+            return
+
+        # shadow_root = self.web_driver.execute_script(
+        #     "return arguments[0].shadowRoot", shadow_host)
+        # logger.debug("Accessing shadow root of Value Your Privacy Dialog")
+        # shadow_root = shadow_host.shadow_root
+
+        logger.debug("Switching to Value Yours Privacy Dialog iFrame")
+        self.web_driver.switch_to.frame(iframe_element)
+
+        try:
+            accept_button = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                'button[aria-label="Accept"]'
+            )
+        except NoSuchElementException:
+            logger.error(
+                "Accept button not found in Value Yours Privacy Dialog")
+            raise ScraperNotSetup(
+                "Accept button not found in Value Yours Privacy Dialog")
+
+        logger.debug("Clicking Accept button on Value Yours Privacy Dialog")
+        accept_button.click()
+
+        logger.debug("Switching back to default content")
+        self.web_driver.switch_to.default_content()
 
     def _is_logged_in(self):
         title_based = self.web_driver.find_element(
@@ -109,26 +152,44 @@ class BaseScraperRepo:
 
         time.sleep(self.sleep)
 
-        username_field = self.web_driver.find_element(
-            By.CSS_SELECTOR,
-            '#signup > form > div > div:nth-child(3) > input[type=text]'
-        )
-        password_field = self.web_driver.find_element(
-            By.CSS_SELECTOR,
-            '#signup > form > div > div:nth-child(4) > input[type=password]'
-        )
+        try:
+            username_field = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                '#signup > form > div > div:nth-child(3) > input[type=text]'
+            )
+        except NoSuchElementException:
+            logger.error("Username field not found, login failed")
+            raise ScraperNotSetup("Username field not found, login failed")
 
+        try:
+            password_field = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                '#signup > form > div > div:nth-child(4) > '
+                'input[type=password]'
+            )
+        except NoSuchElementException:
+            logger.error("Password field not found, login failed")
+            raise ScraperNotSetup("Password field not found, login failed")
+
+        logger.debug("Clearing Login Fields")
         username_field.clear()
         password_field.clear()
+
+        logger.debug("Entering Login Credentials")
         username_field.send_keys(self.username)
         password_field.send_keys(self.password)
 
-        login_button = self.web_driver.find_element(
-            By.CSS_SELECTOR,
-            '#signup > form > div > button.ui-btn.'
-            'btn-color-primary.login-view__login'
-        )
+        try:
+            login_button = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                '#signup > form > div > button.ui-btn.'
+                'btn-color-primary.login-view__login'
+            )
+        except NoSuchElementException:
+            logger.error("Login button not found, login failed")
+            raise ScraperNotSetup("Login button not found, login failed")
 
+        logger.debug("Clicking Login Button")
         login_button.click()
 
         time.sleep(self.sleep)
@@ -137,4 +198,4 @@ class BaseScraperRepo:
 
         self._is_logged_in()
 
-        self.cookie_manager.save_cookies(self.web_driver.get_cookies())
+        self.cookie_manager.save_cookies(self.get_cookies())
