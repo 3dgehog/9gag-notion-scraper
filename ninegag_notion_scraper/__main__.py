@@ -20,7 +20,6 @@ from .args import Arguments, get_args
 from .infra.webdriver import \
     get_webdriver_firefox_remote, get_webbrowser_firefox_locally, \
     get_webbrowser_brave_locally_mac
-from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
 from .infra.repo.cookie_filestorage \
     import FileCookiesRepo
@@ -47,103 +46,153 @@ class WebDriverContainer:
             self.webdriver.quit()
 
 
-def main(args: Arguments, envs: Environments,
-         get_webdriver: Callable[[], WebDriver]) -> None:
-    """The entry point to the application"""
-
-    cookie_usecase = CookiesUseCase(FileCookiesRepo())
-
-    with WebDriverContainer(get_webdriver()) as webdriver:
-
-        if args.save_notion_meme_locally:
-            notion_client = NotionClient(auth=envs.NOTION_TOKEN)
-            notion_get = NotionGetMemes(
-                notion_client, envs.NOTION_DATABASE)
-            notion_update = NotionSaveMeme(
-                notion_client, envs.NOTION_DATABASE)
-            file_storage = FileStorageRepo(
-                covers_path=envs.COVERS_PATH,
-                memes_path=envs.MEMES_PATH,
-                _selenium_cookies_func=cookie_usecase.get_cookies
+def select_webdriver(envs: Environments):
+    """
+    Selects and returns the appropriate webdriver getter based on environment.
+    """
+    match [envs.WEBDRIVER_URL, envs.BROWSER]:
+        case ["", "firefox"]:
+            logger.info("Using Local Firefox WebDriver")
+            return get_webbrowser_firefox_locally
+        case ["", "brave"]:
+            logger.info("Using Local Brave WebDriver on macOS")
+            return get_webbrowser_brave_locally_mac
+        case [url, "firefox"]:
+            logger.info(f"Using Remote Firefox WebDriver URL: {url}")
+            return get_webdriver_firefox_remote(url)
+        case _:
+            logger.error(
+                "Unsupported WebDriver configuration. "
+                "Please check your environment variables."
             )
-            ninegag = NineGagSinglePageScraperRepo(
-                envs.NINEGAG_USERNAME,
-                envs.NINEGAG_PASSWORD,
-                webdriver,
-                cookie_usecase
-            )
-            memes_from_notion_to_save_locally(
-                notion_get=GetDBMemes(notion_get),
-                notion_update=UpdateMeme(notion_update),
-                file_storage=SavePostMeme(file_storage),
-                ninegag=GetPostMeme(ninegag),
-                args=args
-            )
-
-        ninegag_scraper_repo = NineGagStreamScraperRepo(
-            envs.NINEGAG_URL,
-            envs.NINEGAG_USERNAME,
-            envs.NINEGAG_PASSWORD,
-            webdriver,
-            cookie_usecase
-        )
-
-        notion_storage_repo = NotionSaveMeme(NotionClient(
-            auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
-        )
-
-        filestorage_repo = FileStorageRepo(
-            covers_path=envs.COVERS_PATH,
-            memes_path=envs.MEMES_PATH,
-            _selenium_cookies_func=cookie_usecase.get_cookies
-        )
-
-        memes_from_9gag_to_notion_with_local_save(
-            ninegag=GetPostMemes(ninegag_scraper_repo),
-            notion=SavePostMeme(notion_storage_repo),
-            file_storage=SavePostMeme(filestorage_repo),
-            args=args
-        )
+            raise ValueError("Unsupported WebDriver configuration")
 
 
-def memes_from_9gag_to_notion_with_local_save(
-        ninegag: GetPostMemes,
-        notion: SavePostMeme,
-        file_storage: SavePostMeme,
-        args: Arguments) -> None:
+def run_notion_to_local(
+    args: Arguments,
+    envs: Environments,
+    webdriver,
+    cookie_usecase
+):
+    notion_client = NotionClient(auth=envs.NOTION_TOKEN)
+    notion_get = NotionGetMemes(notion_client, envs.NOTION_DATABASE)
+    notion_update = NotionSaveMeme(notion_client, envs.NOTION_DATABASE)
+    file_storage = FileStorageRepo(
+        covers_path=envs.COVERS_PATH,
+        memes_path=envs.MEMES_PATH,
+        _selenium_cookies_func=cookie_usecase.get_cookies
+    )
+    ninegag = NineGagSinglePageScraperRepo(
+        envs.NINEGAG_USERNAME,
+        envs.NINEGAG_PASSWORD,
+        webdriver,
+        cookie_usecase
+    )
+    memes_from_notion_to_save_locally(
+        notion_get=GetDBMemes(notion_get),
+        notion_update=UpdateMeme(notion_update),
+        file_storage=SavePostMeme(file_storage),
+        ninegag=GetPostMeme(ninegag),
+        args=args
+    )
 
+
+def run_9gag_to_notion(
+    args: Arguments,
+    envs: Environments,
+    webdriver,
+    cookie_usecase
+):
+    # Initialize repositories
+    ninegag_scraper_repo = NineGagStreamScraperRepo(
+        envs.NINEGAG_URL,
+        envs.NINEGAG_USERNAME,
+        envs.NINEGAG_PASSWORD,
+        webdriver,
+        cookie_usecase
+    )
+    notion_storage_repo = NotionSaveMeme(
+        NotionClient(auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
+    )
+    filestorage_repo = FileStorageRepo(
+        covers_path=envs.COVERS_PATH,
+        memes_path=envs.MEMES_PATH,
+        _selenium_cookies_func=cookie_usecase.get_cookies
+    )
+    # Start scraping memes from 9GAG and saving to Notion and File Storage
     logger.debug("Starting to scrape memes from 9GAG")
+    # Initialize use cases and variables
+    ninegag = GetPostMemes(ninegag_scraper_repo)
+    notion = SavePostMeme(notion_storage_repo)
+    file_storage = SavePostMeme(filestorage_repo)
+    exists_filestorage = False
+    exists_notion = False
 
-    should_stop = False
     for memes in ninegag.get_memes():
         for meme in memes:
-            if evaluate_storage(args, meme, file_storage):
-                should_stop = True
-                break
-            if evaluate_storage(args, meme, notion):
-                should_stop = True
-                break
-        if should_stop:
-            logger.debug("Loop stopped by evaluate_storage")
-            break
+            # Check if the meme is already saved in File Storage
+            FILE_STORAGE_NAME = "File Storage"
+            exists_file = file_storage.meme_exists(meme)
+            if args.skip_existing and exists_file:
+                logger.info(
+                    f"Meme ID {meme.post_id} was skipped "
+                    f"in '{FILE_STORAGE_NAME}' because it "
+                    "already exists"
+                )
+            elif exists_file:
+                logger.info(f"Meme ID {meme.post_id} already exists in "
+                            f"{FILE_STORAGE_NAME}")
+                exists_filestorage = True
+            else:
+                file_storage.save_meme(meme)
+            # Check if the meme is already saved in Notion
+            NOTION_STORAGE_NAME = "Notion DB"
+            exists_notion = notion.meme_exists(meme)
+            if args.skip_existing and exists_notion:
+                logger.info(
+                    f"Meme ID {meme.post_id} was skipped "
+                    f"in '{NOTION_STORAGE_NAME}' because it "
+                    "already exists"
+                )
+            elif exists_notion:
+                exists_notion = True
+                logger.info(f"Meme ID {meme.post_id} already exists in "
+                            f"{NOTION_STORAGE_NAME}")
+            else:
+                notion.save_meme(meme)
+
+            if exists_filestorage or exists_notion:
+                match [exists_filestorage, exists_notion]:
+                    case [True, True]:
+                        logger.debug(
+                            f"Meme ID {meme.post_id} already exists in both "
+                            f"{FILE_STORAGE_NAME} and {NOTION_STORAGE_NAME}"
+                        )
+                    case [True, False]:
+                        logger.debug(
+                            f"Meme ID {meme.post_id} already exists in "
+                            f"{FILE_STORAGE_NAME}"
+                        )
+                    case [False, True]:
+                        logger.debug(
+                            f"Meme ID {meme.post_id} already exists in "
+                            f"{NOTION_STORAGE_NAME}"
+                        )
+                # Break both inner and outer loops
+                return
 
 
-def evaluate_storage(args: Arguments,
-                     meme: PostMeme,
-                     storage: SavePostMeme):
-    exists = storage.meme_exists(meme)
-
-    if args.skip_existing and exists:
-        logger.info(f"Meme ID {meme.post_id} was skipped "
-                    f"in '{storage.__class__.__name__}' because it "
-                    "already exists")
-        return False
-
-    if not args.ignore_existing and exists:
-        return True  # signal to stop the outer loop
-
-    storage.save_meme(meme)
-    return False
+def main(
+    args: Arguments,
+    envs: Environments,
+    get_webdriver: Callable[[], WebDriver]
+) -> None:
+    """The entry point to the application"""
+    cookie_usecase = CookiesUseCase(FileCookiesRepo())
+    with WebDriverContainer(get_webdriver()) as webdriver:
+        if args.save_notion_meme_locally:
+            run_notion_to_local(args, envs, webdriver, cookie_usecase)
+        run_9gag_to_notion(args, envs, webdriver, cookie_usecase)
 
 
 def memes_from_notion_to_save_locally(
@@ -178,9 +227,25 @@ def memes_from_notion_to_save_locally(
                     notion_update.update_meme(meme.id, tags=['Meme404'])
                     continue
 
-                if evaluate_storage(args, loaded_meme, file_storage):
+                # Inline the evaluate_storage logic for file_storage
+                exists = file_storage.meme_exists(loaded_meme)
+                if args.skip_existing and exists:
+                    logger.info(
+                        f"Meme ID {loaded_meme.post_id} was skipped "
+                        f"in '{file_storage.__class__.__name__}' because it "
+                        "already exists"
+                    )
+                    continue
+                if exists:
                     should_stop = True
+                    logger.debug(
+                        f"Stopping: Meme ID {loaded_meme.post_id} "
+                        "already exists in "
+                        f"{file_storage.__class__.__name__} "
+                        f"and ignore_existing is False"
+                    )
                     break
+                file_storage.save_meme(loaded_meme)
             else:
                 logger.info(f"Meme {meme.post_id} already exists")
         if should_stop:
@@ -191,31 +256,14 @@ def memes_from_notion_to_save_locally(
 if __name__ == '__main__':
     args = get_args()
     envs = get_envs()
-
     logger.setLevel(envs.LOG_LEVEL)
     logger.debug(f"Log level set to {envs.LOG_LEVEL}")
-
     if args.debug:
         # from .debug import main as debug
         # debug(args, envs)
         # quit()
         pass
-
-    match [envs.WEBDRIVER_URL, envs.BROWSER]:
-        case ["", "firefox"]:
-            logger.info("Using Local Firefox WebDriver")
-            get_web_browser = get_webbrowser_firefox_locally
-        case ["", "brave"]:
-            logger.info("Using Local Brave WebDriver on macOS")
-            get_web_browser = get_webbrowser_brave_locally_mac
-        case [url, "firefox"]:
-            logger.info(f"Using Remote Firefox WebDriver URL: {url}")
-            get_web_browser = get_webdriver_firefox_remote(url)
-        case _:
-            logger.error("Unsupported WebDriver configuration. "
-                         "Please check your environment variables.")
-            raise ValueError("Unsupported WebDriver configuration")
-
+    get_web_browser = select_webdriver(envs)
     if envs.RUN_INTERVAL_SECONDS != '0':
         logger.info(f"Running every {envs.RUN_INTERVAL_SECONDS} seconds")
         while True:
