@@ -32,21 +32,13 @@ class BaseScraperRepo:
         self._attempted_login_flag = False
         self._login_url = 'https://9gag.com/login'
         self._homepage_url = 'https://9gag.com/'
-        self._is_setup = False
 
         self.web_driver.implicitly_wait(self.default_implicity_wait)
 
+        self._setup()
+
     def get_cookies(self):
         return self.web_driver.get_cookies()
-
-    def __enter__(self):
-        self._setup()
-        self._is_setup = True
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self._is_setup = False
-        self.web_driver.quit()
 
     def _setup(self):
         url = self._homepage_url
@@ -96,11 +88,6 @@ class BaseScraperRepo:
         except NoSuchElementException:
             logger.debug("Value Your Privacy Dialog not found")
             return
-
-        # shadow_root = self.web_driver.execute_script(
-        #     "return arguments[0].shadowRoot", shadow_host)
-        # logger.debug("Accessing shadow root of Value Your Privacy Dialog")
-        # shadow_root = shadow_host.shadow_root
 
         logger.debug("Switching to Value Yours Privacy Dialog iFrame")
         self.web_driver.switch_to.frame(iframe_element)

@@ -14,7 +14,7 @@ class Arguments(BaseModel):
         ns_dict = vars(ns)
         filtered = {
             name: ns_dict.get(name, field.default)
-            for name, field in cls.__fields__.items()
+            for name, field in cls.model_fields.items()
         }
         return cls(**filtered)
 

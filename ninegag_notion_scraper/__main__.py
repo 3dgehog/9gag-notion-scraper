@@ -18,7 +18,8 @@ from .env import Environments, get_envs
 from .args import Arguments, get_args
 
 from .infra.webdriver import \
-    get_webdriver_firefox_remote, get_webbrowser_firefox_locally
+    get_webdriver_firefox_remote, get_webbrowser_firefox_locally, \
+    get_webbrowser_brave_locally_mac
 from .app.entities.meme import PostMeme
 from .app.use_cases.cookies import CookiesUseCase
 from .infra.repo.cookie_filestorage \
@@ -30,17 +31,29 @@ from .infra.repo.meme_filestorage import FileStorageRepo
 logger = logging.getLogger('app')
 
 
+class WebDriverContainer:
+    """A container for the WebDriver instance"""
+
+    def __init__(self, webdriver: WebDriver):
+        logger.debug("Initializing WebDriver")
+        self.webdriver = webdriver
+        logger.debug("WebDriver initialized")
+
+    def __enter__(self):
+        return self.webdriver
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.webdriver:
+            self.webdriver.quit()
+
+
 def main(args: Arguments, envs: Environments,
          get_webdriver: Callable[[], WebDriver]) -> None:
     """The entry point to the application"""
 
     cookie_usecase = CookiesUseCase(FileCookiesRepo())
-    webdriver = None
 
-    try:
-        logger.debug("Initializing WebDriver")
-        webdriver = get_webdriver()
-        logger.debug("WebDriver initialized")
+    with WebDriverContainer(get_webdriver()) as webdriver:
 
         if args.save_notion_meme_locally:
             notion_client = NotionClient(auth=envs.NOTION_TOKEN)
@@ -59,14 +72,13 @@ def main(args: Arguments, envs: Environments,
                 webdriver,
                 cookie_usecase
             )
-            with ninegag:
-                memes_from_notion_to_save_locally(
-                    notion_get=GetDBMemes(notion_get),
-                    notion_update=UpdateMeme(notion_update),
-                    file_storage=SavePostMeme(file_storage),
-                    ninegag=GetPostMeme(ninegag),
-                    args=args
-                )
+            memes_from_notion_to_save_locally(
+                notion_get=GetDBMemes(notion_get),
+                notion_update=UpdateMeme(notion_update),
+                file_storage=SavePostMeme(file_storage),
+                ninegag=GetPostMeme(ninegag),
+                args=args
+            )
 
         ninegag_scraper_repo = NineGagStreamScraperRepo(
             envs.NINEGAG_URL,
@@ -86,23 +98,12 @@ def main(args: Arguments, envs: Environments,
             _selenium_cookies_func=cookie_usecase.get_cookies
         )
 
-        with ninegag_scraper_repo:
-            memes_from_9gag_to_notion_with_local_save(
-                ninegag=GetPostMemes(ninegag_scraper_repo),
-                notion=SavePostMeme(notion_storage_repo),
-                file_storage=SavePostMeme(filestorage_repo),
-                args=args
-            )
-    except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
-        if webdriver:
-            logger.debug("Detected a WebDriver instance, Quitting instance")
-            webdriver.quit()
-            logger.debug("WebDriver quit successfully")
-
-
-class StopLoopException(Exception):
-    pass
+        memes_from_9gag_to_notion_with_local_save(
+            ninegag=GetPostMemes(ninegag_scraper_repo),
+            notion=SavePostMeme(notion_storage_repo),
+            file_storage=SavePostMeme(filestorage_repo),
+            args=args
+        )
 
 
 def memes_from_9gag_to_notion_with_local_save(
@@ -113,13 +114,16 @@ def memes_from_9gag_to_notion_with_local_save(
 
     logger.debug("Starting to scrape memes from 9GAG")
 
+    should_stop = False
     for memes in ninegag.get_memes():
-        try:
-            for meme in memes:
-                evaluate_storage(args, meme, file_storage)
-                evaluate_storage(args, meme, notion)
-
-        except StopLoopException:
+        for meme in memes:
+            if evaluate_storage(args, meme, file_storage):
+                should_stop = True
+                break
+            if evaluate_storage(args, meme, notion):
+                should_stop = True
+                break
+        if should_stop:
             logger.debug("Loop stopped by evaluate_storage")
             break
 
@@ -127,19 +131,19 @@ def memes_from_9gag_to_notion_with_local_save(
 def evaluate_storage(args: Arguments,
                      meme: PostMeme,
                      storage: SavePostMeme):
-
     exists = storage.meme_exists(meme)
 
     if args.skip_existing and exists:
         logger.info(f"Meme ID {meme.post_id} was skipped "
                     f"in '{storage.__class__.__name__}' because it "
                     "already exists")
-        return
+        return False
 
     if not args.ignore_existing and exists:
-        raise StopLoopException  # stop the outer loop
+        return True  # signal to stop the outer loop
 
     storage.save_meme(meme)
+    return False
 
 
 def memes_from_notion_to_save_locally(
@@ -158,27 +162,30 @@ def memes_from_notion_to_save_locally(
         }
     }
 
+    should_stop = False
     for memes in notion_get.get_memes(filter=filter):
-        try:
-            for meme in memes:
-                if not file_storage.meme_exists(meme):
-                    logger.info(f"Meme {meme.post_id} doesn't exists locally")
+        for meme in memes:
+            if not file_storage.meme_exists(meme):
+                logger.info(f"Meme {meme.post_id} doesn't exists locally")
 
-                    try:
-                        loaded_meme = ninegag.get_meme_from_url(
-                            meme.post_url)
-                    except Meme404:
-                        logger.info(
-                            f"skipping Meme ID {meme.post_id} because it "
-                            "doesn't exist anymore")
-                        notion_update.update_meme(meme.id, tags=['Meme404'])
-                        continue
+                try:
+                    loaded_meme = ninegag.get_meme_from_url(
+                        meme.post_url)
+                except Meme404:
+                    logger.info(
+                        f"skipping Meme ID {meme.post_id} because it "
+                        "doesn't exist anymore")
+                    notion_update.update_meme(meme.id, tags=['Meme404'])
+                    continue
 
-                    evaluate_storage(args, loaded_meme, file_storage)
-                else:
-                    logger.info(f"Meme {meme.post_id} already exists")
-        except StopLoopException:
+                if evaluate_storage(args, loaded_meme, file_storage):
+                    should_stop = True
+                    break
+            else:
+                logger.info(f"Meme {meme.post_id} already exists")
+        if should_stop:
             logger.debug("Loop stopped by evaluate_storage")
+            break
 
 
 if __name__ == '__main__':
@@ -194,13 +201,20 @@ if __name__ == '__main__':
         # quit()
         pass
 
-    match envs.WEBDRIVER_URL:
-        case '0':
-            logger.info("Using Local Brave WebDriver")
+    match [envs.WEBDRIVER_URL, envs.BROWSER]:
+        case ["", "firefox"]:
+            logger.info("Using Local Firefox WebDriver")
             get_web_browser = get_webbrowser_firefox_locally
+        case ["", "brave"]:
+            logger.info("Using Local Brave WebDriver on macOS")
+            get_web_browser = get_webbrowser_brave_locally_mac
+        case [url, "firefox"]:
+            logger.info(f"Using Remote Firefox WebDriver URL: {url}")
+            get_web_browser = get_webdriver_firefox_remote(url)
         case _:
-            logger.info(f"Using Remote WebDriver URL: {envs.WEBDRIVER_URL}")
-            get_web_browser = get_webdriver_firefox_remote(envs.WEBDRIVER_URL)
+            logger.error("Unsupported WebDriver configuration. "
+                         "Please check your environment variables.")
+            raise ValueError("Unsupported WebDriver configuration")
 
     if envs.RUN_INTERVAL_SECONDS != '0':
         logger.info(f"Running every {envs.RUN_INTERVAL_SECONDS} seconds")
@@ -211,8 +225,5 @@ if __name__ == '__main__':
             except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt received, exiting...")
                 break
-            except Exception as e:
-                logger.error(f"An error occurred: {e}", exc_info=True)
-                time.sleep(int(envs.RUN_INTERVAL_SECONDS))
     else:
         main(args, envs, get_web_browser)

@@ -9,17 +9,15 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
 from ninegag_notion_scraper.app.entities.meme import PostMeme
-from ninegag_notion_scraper.app.interfaces.meme_repo \
-    import GetPostMemesRepo
 from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
 
-from .base import BaseScraperRepo, ScraperNotSetup
+from .base import BaseScraperRepo
 from .element_article import StreamArticle
 
 logger = logging.getLogger('app.9gag')
 
 
-class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
+class NineGagStreamScraperRepo(BaseScraperRepo):
     """A class that handles all the web scraping on 9gag"""
 
     def __init__(self,
@@ -40,10 +38,12 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
         self._current_stream_num = 0
         self._scroll_to_spinner_error_flag = False
 
+        # Set up the initial state
+        self.web_driver.get(self._stream_url)
+        self._list_view = self._get_list_view()
+
     def get_memes(self) -> List[PostMeme]:
         """Return memes from current stream"""
-        if not self._is_setup:
-            raise ScraperNotSetup
         if self._at_bottom_flag:
             logger.warning("Reached the bottom, no more memes to give")
             return []
@@ -105,11 +105,6 @@ class NineGagStreamScraperRepo(BaseScraperRepo, GetPostMemesRepo):
             self._at_bottom_flag = True
 
         return self._current_stream_num
-
-    def _setup(self) -> None:
-        super()._setup()
-        self.web_driver.get(self._stream_url)
-        self._list_view = self._get_list_view()
 
     def _get_articles_from_stream(self,
                                   stream: WebElement
