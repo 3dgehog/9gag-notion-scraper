@@ -12,12 +12,6 @@ class GetPostMemesRepo(Protocol):
     def next(self) -> int:
         ...
 
-    def __enter__(self):
-        ...
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        ...
-
 
 class GetDBMemesRepo(Protocol):
     at_end: bool

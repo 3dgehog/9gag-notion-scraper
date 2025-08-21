@@ -32,21 +32,13 @@ class BaseScraperRepo:
         self._attempted_login_flag = False
         self._login_url = 'https://9gag.com/login'
         self._homepage_url = 'https://9gag.com/'
-        self._is_setup = False
 
         self.web_driver.implicitly_wait(self.default_implicity_wait)
 
+        self._setup()
+
     def get_cookies(self):
         return self.web_driver.get_cookies()
-
-    def __enter__(self):
-        self._setup()
-        self._is_setup = True
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self._is_setup = False
-        self.web_driver.quit()
 
     def _setup(self):
         url = self._homepage_url
@@ -97,11 +89,6 @@ class BaseScraperRepo:
             logger.debug("Value Your Privacy Dialog not found")
             return
 
-        # shadow_root = self.web_driver.execute_script(
-        #     "return arguments[0].shadowRoot", shadow_host)
-        # logger.debug("Accessing shadow root of Value Your Privacy Dialog")
-        # shadow_root = shadow_host.shadow_root
-
         logger.debug("Switching to Value Yours Privacy Dialog iFrame")
         self.web_driver.switch_to.frame(iframe_element)
 
@@ -122,20 +109,22 @@ class BaseScraperRepo:
         logger.debug("Switching back to default content")
         self.web_driver.switch_to.default_content()
 
+    # Check if user is logged in
     def _is_logged_in(self):
-        title_based = self.web_driver.find_element(
+        title = self.web_driver.find_element(
             By.XPATH, '/html/head/title').get_attribute('innerHTML')
-        if title_based == "9GAG - 404 Nothing here":
+        if title == "9GAG - 404 Nothing here":
             self._login_flag = False
             logger.debug("Detected you are NOT logged in")
             if self._attempted_login_flag:
                 raise RuntimeError("Wasn't able to login... Help")
             return False
-        top_nav_based = self.web_driver.find_element(
+
+        top_nav = self.web_driver.find_element(
             By.CSS_SELECTOR,
-            '#top-nav > div > div > '
+            '#top-navb > div > div > '
             'div.visitor-function').get_attribute('style')
-        if top_nav_based == "":
+        if top_nav == "":
             self._login_flag = False
             logger.debug("Detected you are NOT logged in")
             if self._attempted_login_flag:
