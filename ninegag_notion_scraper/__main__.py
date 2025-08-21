@@ -100,8 +100,8 @@ def run_notion_to_local(
 def run_9gag_to_notion(
     args: Arguments,
     envs: Environments,
-    webdriver,
-    cookie_usecase
+    webdriver: WebDriver,
+    cookie_usecase: CookiesUseCase
 ):
     # Initialize repositories
     ninegag_scraper_repo = NineGagStreamScraperRepo(

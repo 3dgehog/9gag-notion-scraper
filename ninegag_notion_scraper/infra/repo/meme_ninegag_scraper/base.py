@@ -109,20 +109,22 @@ class BaseScraperRepo:
         logger.debug("Switching back to default content")
         self.web_driver.switch_to.default_content()
 
+    # Check if user is logged in
     def _is_logged_in(self):
-        title_based = self.web_driver.find_element(
+        title = self.web_driver.find_element(
             By.XPATH, '/html/head/title').get_attribute('innerHTML')
-        if title_based == "9GAG - 404 Nothing here":
+        if title == "9GAG - 404 Nothing here":
             self._login_flag = False
             logger.debug("Detected you are NOT logged in")
             if self._attempted_login_flag:
                 raise RuntimeError("Wasn't able to login... Help")
             return False
-        top_nav_based = self.web_driver.find_element(
+
+        top_nav = self.web_driver.find_element(
             By.CSS_SELECTOR,
-            '#top-nav > div > div > '
+            '#top-navb > div > div > '
             'div.visitor-function').get_attribute('style')
-        if top_nav_based == "":
+        if top_nav == "":
             self._login_flag = False
             logger.debug("Detected you are NOT logged in")
             if self._attempted_login_flag:
