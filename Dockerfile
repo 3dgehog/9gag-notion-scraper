@@ -9,20 +9,7 @@ ENV POETRY_VERSION=1.8.2 \
 # Install system dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        gcc \
         curl \
-        build-essential \
-        libglib2.0-0 \
-        libnss3 \
-        libgconf-2-4 \
-        libfontconfig1 \
-        libxss1 \
-        libasound2 \
-        libxtst6 \
-        libxrandr2 \
-        libu2f-udev \
-        libatk-bridge2.0-0 \
-        libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
