@@ -73,9 +73,19 @@ class FileStorageRepo(SaveMemeRepo):
         destination_path = os.path.join(path,
                                         file_id + url_item.file_extension)
 
+        # Ensure directory exists
+        try:
+            os.makedirs(path, exist_ok=True)
+        except OSError as e:
+            raise DownloadError(f"Failed to create directory '{path}': {e}")
+
         if response.status_code == 200:
-            with open(destination_path, 'wb') as file:
-                file.write(response.content)
+            try:
+                with open(destination_path, 'wb') as file:
+                    file.write(response.content)
+            except OSError as e:
+                raise DownloadError(
+                    f"Failed to write file '{destination_path}': {e}")
         else:
             raise DownloadError(
                 "Failed to download file. Status code: "
