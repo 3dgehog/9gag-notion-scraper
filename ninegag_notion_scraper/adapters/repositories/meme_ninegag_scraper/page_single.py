@@ -4,10 +4,10 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
 
-from ninegag_notion_scraper.app.entities.meme import PostMeme
-from ninegag_notion_scraper.app.interfaces.meme_repo \
+from ninegag_notion_scraper.domain.entities.meme import PostMeme
+from ninegag_notion_scraper.domain.interfaces.meme_repo \
     import GetMemeRepo
-from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
+from ninegag_notion_scraper.use_cases.cookies import CookiesUseCase
 
 from .element_article import SinglePageArticle
 from .base import BaseScraperRepo

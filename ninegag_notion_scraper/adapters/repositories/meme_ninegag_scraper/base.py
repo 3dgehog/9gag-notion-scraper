@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from ninegag_notion_scraper.app.use_cases.cookies import CookiesUseCase
+from ninegag_notion_scraper.use_cases.cookies import CookiesUseCase
 
 logger = logging.getLogger('app.9gag')
 

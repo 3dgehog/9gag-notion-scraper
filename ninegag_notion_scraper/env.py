@@ -19,6 +19,7 @@ class Environments(BaseSettings):
     WEBDRIVER_URL: str = Field(default="")
     LOG_LEVEL: str = Field(default="INFO")
     BROWSER: str = Field(default="firefox")
+    DISCORD_WEBHOOK_URL: str = Field(default="")
 
     @field_validator("WEBDRIVER_URL")
     def validate_webdriver_url(cls, v):

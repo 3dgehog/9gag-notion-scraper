@@ -2,8 +2,8 @@ import logging
 from validators import url as validate_url
 from typing import Generator, List, Optional
 
-from ninegag_notion_scraper.app.entities.meme import DBMeme, PostMeme
-from ninegag_notion_scraper.app.interfaces.meme_repo import GetMemeRepo, \
+from ninegag_notion_scraper.domain.entities.meme import DBMeme, PostMeme
+from ninegag_notion_scraper.domain.interfaces.meme_repo import GetMemeRepo, \
     UpdateMemeRepo, SaveMemeRepo, GetPostMemesRepo, GetDBMemesRepo
 
 

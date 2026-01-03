@@ -1,6 +1,6 @@
 from typing import Protocol, List, Optional
 
-from ninegag_notion_scraper.app.entities.meme import PostMeme, DBMeme
+from ninegag_notion_scraper.domain.entities.meme import PostMeme, DBMeme
 
 
 class GetPostMemesRepo(Protocol):
