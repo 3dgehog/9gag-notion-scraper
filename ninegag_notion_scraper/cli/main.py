@@ -9,7 +9,7 @@ from ..env import get_envs, Environments
 from ..args import get_args, Arguments
 from ..use_cases.cookies import CookiesUseCase
 from ..adapters.repositories.cookie_filestorage import FileCookiesRepo
-from .container import WebDriverContainer, select_webdriver
+from .containers.webdriver import WebDriverContainer, select_webdriver
 from .runners import run_notion_to_local, run_9gag_to_notion
 
 logger = logging.getLogger('app')
@@ -35,7 +35,8 @@ def run():
     logger.setLevel(envs.LOG_LEVEL)
     logger.debug(f"Log level set to {envs.LOG_LEVEL}")
     if args.debug:
-        pass
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug mode is ON")
     get_web_browser = select_webdriver(envs)
     if envs.RUN_INTERVAL_SECONDS != '0':
         logger.info(f"Running every {envs.RUN_INTERVAL_SECONDS} seconds")
@@ -45,6 +46,10 @@ def run():
                 time.sleep(int(envs.RUN_INTERVAL_SECONDS))
             except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt received, exiting...")
+                break
+            except Exception as e:
+                logger.error(f"An error occurred: {e}", exc_info=True)
+                time.sleep(int(envs.RUN_INTERVAL_SECONDS))
                 break
     else:
         main(args, envs, get_web_browser)

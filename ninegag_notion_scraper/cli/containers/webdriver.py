@@ -4,8 +4,8 @@ import logging
 from typing import Callable
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from ..env import Environments
-from ..adapters.webdriver import \
+from ...env import Environments
+from ...adapters.webdriver import \
     get_webdriver_firefox_remote, get_webbrowser_firefox_locally, \
     get_webbrowser_brave_locally_mac
 

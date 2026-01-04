@@ -14,6 +14,10 @@ class ScraperNotSetup(Exception):
 
 
 class BaseScraperRepo:
+    """
+    This is the base class for 9gag scrapers. It handles login, cookie
+    management, and initial setup.
+    """
     def __init__(self,
                  username: str, password: str,
                  web_driver: WebDriver,
@@ -48,8 +52,7 @@ class BaseScraperRepo:
 
         time.sleep(self.sleep)
 
-        self._accept_cookie_dialog()
-        self._accept_value_your_privacy_dialog()
+        self._detect_and_handle_dialogs()
 
         time.sleep(self.sleep)
 
@@ -63,13 +66,17 @@ class BaseScraperRepo:
             for cookie in cookies:
                 self.web_driver.add_cookie(cookie)
 
-    def _accept_cookie_dialog(self):
+    def _detect_and_handle_dialogs(self):
+        logger.debug("Detecting and handling dialogs if any")
+        self._detect_and_accept_cookie_dialog()
+        self._detect_and_accept_value_your_privacy_dialog()
+
+    def _detect_and_accept_cookie_dialog(self):
         try:
             dialog = self.web_driver.find_element(
                 By.CSS_SELECTOR, '#qc-cmp2-ui')
             logger.debug("Found Cookie Dialog")
         except NoSuchElementException:
-            logger.debug("Cookie Dialog not found")
             return
 
         accept_button = dialog.find_element(
@@ -79,14 +86,13 @@ class BaseScraperRepo:
         logger.debug("Clicking Accept button on Cookie Dialog")
         accept_button.click()
 
-    def _accept_value_your_privacy_dialog(self):
+    def _detect_and_accept_value_your_privacy_dialog(self):
         try:
             iframe_element = self.web_driver.find_element(
                 By.CSS_SELECTOR, "iframe[id^='sp_message_iframe']")
             logger.debug("Found Value Your Privacy Dialog iFrame")
 
         except NoSuchElementException:
-            logger.debug("Value Your Privacy Dialog not found")
             return
 
         logger.debug("Switching to Value Yours Privacy Dialog iFrame")

@@ -15,6 +15,12 @@ class GetPostMemes:
         self.memes_repo = memes_repo
 
     def get_memes(self) -> Generator[List[PostMeme], None, None]:
+        """
+        A generator that yields lists of PostMeme entities.
+
+        :return: A generator yielding lists of PostMeme entities
+        :rtype: Generator[List[PostMeme], None, None]
+        """
         while not self.memes_repo.at_end:
             memes_entities = self.memes_repo.get_memes()
 
