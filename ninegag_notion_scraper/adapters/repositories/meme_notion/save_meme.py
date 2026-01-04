@@ -6,7 +6,7 @@ from notion_client import Client, APIResponseError
 from retry import retry
 
 from ninegag_notion_scraper.domain.entities.meme import DBMeme, PostMeme
-from ninegag_notion_scraper.domain.interfaces.meme_repo \
+from ninegag_notion_scraper.domain.interfaces.repositories.meme \
     import SaveMemeRepo, UpdateMemeRepo
 
 from .base import Properties, NotionBase

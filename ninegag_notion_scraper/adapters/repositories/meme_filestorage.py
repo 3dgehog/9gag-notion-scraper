@@ -8,7 +8,8 @@ import glob
 import logging
 
 from ninegag_notion_scraper.domain.entities.meme import DBMeme, PostMeme
-from ninegag_notion_scraper.domain.interfaces.meme_repo import SaveMemeRepo
+from ninegag_notion_scraper.domain.interfaces.repositories.meme import \
+    SaveMemeRepo
 
 
 logger = logging.getLogger('app.storage')

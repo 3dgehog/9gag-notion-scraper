@@ -2,7 +2,7 @@ import copy
 from typing import Awaitable, List, Optional
 from notion_client import Client
 from ninegag_notion_scraper.domain.entities.meme import DBMeme
-from ninegag_notion_scraper.domain.interfaces.meme_repo \
+from ninegag_notion_scraper.domain.interfaces.repositories.meme \
     import GetDBMemesRepo
 
 from .base import NotionBase
