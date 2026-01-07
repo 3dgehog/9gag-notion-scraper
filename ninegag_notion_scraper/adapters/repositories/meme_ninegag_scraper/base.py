@@ -1,10 +1,11 @@
 import time
 import logging
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, \
+    UnableToSetCookieException
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from ninegag_notion_scraper.use_cases.cookies import CookiesUseCase
+from ninegag_notion_scraper.use_cases.core.cookies import CookiesUseCase
 
 logger = logging.getLogger('app.9gag')
 
@@ -64,7 +65,13 @@ class BaseScraperRepo:
     def _load_cookies(self):
         if (cookies := self.cookie_manager.get_cookies()):
             for cookie in cookies:
-                self.web_driver.add_cookie(cookie)
+                try:
+                    self.web_driver.add_cookie(cookie)
+                except UnableToSetCookieException:
+                    logger.warning(
+                        f"Unable to set cookie: {cookie.get('name')}, "
+                        "Skipping...")
+                    continue
 
     def _detect_and_handle_dialogs(self):
         logger.debug("Detecting and handling dialogs if any")

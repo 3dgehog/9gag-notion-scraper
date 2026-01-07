@@ -1,8 +1,6 @@
+import re
 from pydantic import Field
 from pydantic_settings import BaseSettings
-
-
-import re
 from pydantic import field_validator
 
 

@@ -24,6 +24,7 @@ autopep8 = "*"
 mypy = "*"
 types-requests = "*"
 types-retry = "*"
+pylint = "^4.0.4"
 
 [build-system]
 requires = ["poetry-core"]

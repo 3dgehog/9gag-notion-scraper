@@ -4,13 +4,20 @@ import logging
 import time
 from typing import Callable
 from selenium.webdriver.remote.webdriver import WebDriver
+from notion_client import Client as NotionClient
 
 from ..env import get_envs, Environments
 from ..args import get_args, Arguments
-from ..use_cases.cookies import CookiesUseCase
+from ..use_cases.core.cookies import CookiesUseCase
+from ..use_cases.core.meme import GetPostMemes, SavePostMeme
+from ..use_cases.main import ScrapeNineGagToNotionAndStorageUseCase
 from ..adapters.repositories.cookie_filestorage import FileCookiesRepo
+from ..adapters.repositories.meme_ninegag_scraper import \
+    NineGagStreamScraperRepo
+from ..adapters.repositories.meme_notion import NotionSaveMeme
+from ..adapters.repositories.meme_filestorage import FileStorageRepo
 from .containers.webdriver import WebDriverContainer, select_webdriver
-from .runners import run_notion_to_local, run_9gag_to_notion
+from .runners import run_notion_to_local
 
 logger = logging.getLogger('app')
 
@@ -25,7 +32,33 @@ def main(
     with WebDriverContainer(get_webdriver()) as webdriver:
         if args.save_notion_meme_locally:
             run_notion_to_local(args, envs, webdriver, cookie_usecase)
-        run_9gag_to_notion(args, envs, webdriver, cookie_usecase)
+            quit()
+
+        # Initialize repositories
+        ninegag_scraper_repo = NineGagStreamScraperRepo(
+            envs.NINEGAG_URL,
+            envs.NINEGAG_USERNAME,
+            envs.NINEGAG_PASSWORD,
+            webdriver,
+            cookie_usecase
+        )
+        notion_storage_repo = NotionSaveMeme(
+            NotionClient(auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
+        )
+        filestorage_repo = FileStorageRepo(
+            covers_path=envs.COVERS_PATH,
+            memes_path=envs.MEMES_PATH,
+            _selenium_cookies_func=cookie_usecase.get_cookies
+        )
+
+        # Initialize and execute the use case
+        scrape_usecase = ScrapeNineGagToNotionAndStorageUseCase(
+            get_post_memes=GetPostMemes(ninegag_scraper_repo),
+            save_to_notion=SavePostMeme(notion_storage_repo),
+            save_to_filestorage=SavePostMeme(filestorage_repo),
+            args=args
+        )
+        scrape_usecase.execute()
 
 
 def run():

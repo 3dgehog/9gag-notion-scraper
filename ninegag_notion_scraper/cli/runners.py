@@ -6,15 +6,13 @@ from notion_client import Client as NotionClient
 
 from ..args import Arguments
 from ..env import Environments
-from ..use_cases.meme import GetDBMemes, \
-    GetPostMeme, GetPostMemes, SavePostMeme, UpdateMeme
-from ..use_cases.cookies import CookiesUseCase
+from ..use_cases.core.meme import GetDBMemes, \
+    GetPostMeme, SavePostMeme, UpdateMeme
+from ..use_cases.core.cookies import CookiesUseCase
 from ..adapters.repositories.meme_ninegag_scraper.page_single \
     import Meme404, NineGagSinglePageScraperRepo
 from ..adapters.repositories.meme_notion.get_memes \
     import NotionGetMemes
-from ..adapters.repositories.meme_ninegag_scraper \
-    import NineGagStreamScraperRepo
 from ..adapters.repositories.meme_notion import NotionSaveMeme
 from ..adapters.repositories.meme_filestorage import FileStorageRepo
 
@@ -49,92 +47,6 @@ def run_notion_to_local(
         ninegag=GetPostMeme(ninegag),
         args=args
     )
-
-
-def run_9gag_to_notion(
-    args: Arguments,
-    envs: Environments,
-    webdriver: WebDriver,
-    cookie_usecase: CookiesUseCase
-):
-    """Run the 9GAG to Notion workflow"""
-    # Initialize repositories
-    ninegag_scraper_repo = NineGagStreamScraperRepo(
-        envs.NINEGAG_URL,
-        envs.NINEGAG_USERNAME,
-        envs.NINEGAG_PASSWORD,
-        webdriver,
-        cookie_usecase
-    )
-    notion_storage_repo = NotionSaveMeme(
-        NotionClient(auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
-    )
-    filestorage_repo = FileStorageRepo(
-        covers_path=envs.COVERS_PATH,
-        memes_path=envs.MEMES_PATH,
-        _selenium_cookies_func=cookie_usecase.get_cookies
-    )
-    # Start scraping memes from 9GAG and saving to Notion and File Storage
-    logger.debug("Starting to scrape memes from 9GAG")
-    # Initialize use cases and variables
-    ninegag = GetPostMemes(ninegag_scraper_repo)
-    notion = SavePostMeme(notion_storage_repo)
-    file_storage = SavePostMeme(filestorage_repo)
-    exists_filestorage = False
-    exists_notion = False
-
-    for memes in ninegag.get_memes():
-        for meme in memes:
-            # Check if the meme is already saved in File Storage
-            FILE_STORAGE_NAME = "File Storage"
-            exists_file = file_storage.meme_exists(meme)
-            if args.skip_existing and exists_file:
-                logger.info(
-                    f"Meme ID {meme.post_id} was skipped "
-                    f"in '{FILE_STORAGE_NAME}' because it "
-                    "already exists"
-                )
-            elif exists_file:
-                logger.info(f"Meme ID {meme.post_id} already exists in "
-                            f"{FILE_STORAGE_NAME}")
-                exists_filestorage = True
-            else:
-                file_storage.save_meme(meme)
-            # Check if the meme is already saved in Notion
-            NOTION_STORAGE_NAME = "Notion DB"
-            exists_notion = notion.meme_exists(meme)
-            if args.skip_existing and exists_notion:
-                logger.info(
-                    f"Meme ID {meme.post_id} was skipped "
-                    f"in '{NOTION_STORAGE_NAME}' because it "
-                    "already exists"
-                )
-            elif exists_notion:
-                exists_notion = True
-                logger.info(f"Meme ID {meme.post_id} already exists in "
-                            f"{NOTION_STORAGE_NAME}")
-            else:
-                notion.save_meme(meme)
-
-            if exists_filestorage or exists_notion:
-                match [exists_filestorage, exists_notion]:
-                    case [True, True]:
-                        logger.debug(
-                            f"Meme ID {meme.post_id} already exists in both "
-                            f"{FILE_STORAGE_NAME} and {NOTION_STORAGE_NAME}"
-                        )
-                    case [True, False]:
-                        logger.debug(
-                            f"Meme ID {meme.post_id} already exists in "
-                            f"{FILE_STORAGE_NAME}"
-                        )
-                    case [False, True]:
-                        logger.debug(
-                            f"Meme ID {meme.post_id} already exists in "
-                            f"{NOTION_STORAGE_NAME}"
-                        )
-                # Break both inner and outer loops
-                return
 
 
 def memes_from_notion_to_save_locally(

@@ -9,7 +9,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
 from ninegag_notion_scraper.domain.entities.meme import PostMeme
-from ninegag_notion_scraper.use_cases.cookies import CookiesUseCase
+from ninegag_notion_scraper.use_cases.core.cookies import CookiesUseCase
 
 from .base import BaseScraperRepo
 from .element_article import StreamArticle
