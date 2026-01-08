@@ -5,7 +5,9 @@ from selenium.common.exceptions import NoSuchElementException, \
     UnableToSetCookieException
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from ninegag_notion_scraper.use_cases.core.cookies import CookiesUseCase
+from ninegag_notion_scraper.use_cases.cookies import get_cookies, save_cookies
+from ninegag_notion_scraper.domain.interfaces.repositories.cookie \
+    import CookieRepo
 
 logger = logging.getLogger('app.9gag')
 
@@ -22,13 +24,13 @@ class BaseScraperRepo:
     def __init__(self,
                  username: str, password: str,
                  web_driver: WebDriver,
-                 cookie_usecase: CookiesUseCase,
+                 cookie_repo: CookieRepo,
                  **kwargs) -> None:
         self.username = username
         self.password = password
         self.web_driver = web_driver
         self.at_end = False
-        self.cookie_manager = cookie_usecase
+        self.cookie_repo = cookie_repo
         self.sleep = kwargs.get('sleep') or 0.5
         self.default_implicity_wait = kwargs.get(
             'default_implicity_wait') or 1
@@ -63,7 +65,7 @@ class BaseScraperRepo:
                 self.web_driver.get(url)
 
     def _load_cookies(self):
-        if (cookies := self.cookie_manager.get_cookies()):
+        if (cookies := get_cookies(self.cookie_repo)):
             for cookie in cookies:
                 try:
                     self.web_driver.add_cookie(cookie)
@@ -200,4 +202,4 @@ class BaseScraperRepo:
 
         self._is_logged_in()
 
-        self.cookie_manager.save_cookies(self.get_cookies())
+        save_cookies(self.cookie_repo, self.get_cookies())

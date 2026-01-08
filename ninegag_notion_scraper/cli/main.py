@@ -8,9 +8,9 @@ from notion_client import Client as NotionClient
 
 from ..env import get_envs, Environments
 from ..args import get_args, Arguments
-from ..use_cases.core.cookies import CookiesUseCase
-from ..use_cases.core.meme import GetPostMemes, SavePostMeme
-from ..use_cases.main import ScrapeNineGagToNotionAndStorageUseCase
+from ..use_cases.cookies import get_cookies
+from ..use_cases.meme import GetPostMemes, SavePostMeme
+from ..workflows.main import ScrapeNineGagToNotionAndStorageWorkflow
 from ..adapters.repositories.cookie_filestorage import FileCookiesRepo
 from ..adapters.repositories.meme_ninegag_scraper import \
     NineGagStreamScraperRepo
@@ -28,10 +28,10 @@ def main(
     get_webdriver: Callable[[], WebDriver]
 ) -> None:
     """The entry point to the application"""
-    cookie_usecase = CookiesUseCase(FileCookiesRepo())
+    cookie_repo = FileCookiesRepo()
     with WebDriverContainer(get_webdriver()) as webdriver:
         if args.save_notion_meme_locally:
-            run_notion_to_local(args, envs, webdriver, cookie_usecase)
+            run_notion_to_local(args, envs, webdriver, cookie_repo)
             quit()
 
         # Initialize repositories
@@ -40,7 +40,7 @@ def main(
             envs.NINEGAG_USERNAME,
             envs.NINEGAG_PASSWORD,
             webdriver,
-            cookie_usecase
+            cookie_repo
         )
         notion_storage_repo = NotionSaveMeme(
             NotionClient(auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
@@ -48,11 +48,11 @@ def main(
         filestorage_repo = FileStorageRepo(
             covers_path=envs.COVERS_PATH,
             memes_path=envs.MEMES_PATH,
-            _selenium_cookies_func=cookie_usecase.get_cookies
+            _selenium_cookies_func=lambda: get_cookies(cookie_repo)
         )
 
         # Initialize and execute the use case
-        scrape_usecase = ScrapeNineGagToNotionAndStorageUseCase(
+        scrape_usecase = ScrapeNineGagToNotionAndStorageWorkflow(
             get_post_memes=GetPostMemes(ninegag_scraper_repo),
             save_to_notion=SavePostMeme(notion_storage_repo),
             save_to_filestorage=SavePostMeme(filestorage_repo),

@@ -1,12 +1,12 @@
 import logging
 
 from ..args import Arguments
-from .core.meme import GetPostMemes, SavePostMeme
+from ..use_cases.meme import GetPostMemes, SavePostMeme
 
 logger = logging.getLogger('app.uc')
 
 
-class ScrapeNineGagToNotionAndStorageUseCase:
+class ScrapeNineGagToNotionAndStorageWorkflow:
     """Use case for scraping memes from 9GAG and saving to Notion
     and File Storage"""
 

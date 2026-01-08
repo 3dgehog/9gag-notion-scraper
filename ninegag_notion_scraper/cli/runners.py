@@ -6,9 +6,10 @@ from notion_client import Client as NotionClient
 
 from ..args import Arguments
 from ..env import Environments
-from ..use_cases.core.meme import GetDBMemes, \
+from ..use_cases.meme import GetDBMemes, \
     GetPostMeme, SavePostMeme, UpdateMeme
-from ..use_cases.core.cookies import CookiesUseCase
+from ..use_cases.cookies import get_cookies
+from ..domain.interfaces.repositories.cookie import CookieRepo
 from ..adapters.repositories.meme_ninegag_scraper.page_single \
     import Meme404, NineGagSinglePageScraperRepo
 from ..adapters.repositories.meme_notion.get_memes \
@@ -23,7 +24,7 @@ def run_notion_to_local(
     args: Arguments,
     envs: Environments,
     webdriver: WebDriver,
-    cookie_usecase: CookiesUseCase
+    cookie_repo: CookieRepo
 ):
     """Run the Notion to local file storage workflow"""
     notion_client = NotionClient(auth=envs.NOTION_TOKEN)
@@ -32,13 +33,13 @@ def run_notion_to_local(
     file_storage = FileStorageRepo(
         covers_path=envs.COVERS_PATH,
         memes_path=envs.MEMES_PATH,
-        _selenium_cookies_func=cookie_usecase.get_cookies
+        _selenium_cookies_func=lambda: get_cookies(cookie_repo)
     )
     ninegag = NineGagSinglePageScraperRepo(
         envs.NINEGAG_USERNAME,
         envs.NINEGAG_PASSWORD,
         webdriver,
-        cookie_usecase
+        cookie_repo
     )
     memes_from_notion_to_save_locally(
         notion_get=GetDBMemes(notion_get),

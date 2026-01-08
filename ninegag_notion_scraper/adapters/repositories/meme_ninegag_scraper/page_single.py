@@ -7,7 +7,8 @@ from selenium.common.exceptions import NoSuchElementException
 from ninegag_notion_scraper.domain.entities.meme import PostMeme
 from ninegag_notion_scraper.domain.interfaces.repositories.meme \
     import GetMemeRepo
-from ninegag_notion_scraper.use_cases.core.cookies import CookiesUseCase
+from ninegag_notion_scraper.domain.interfaces.repositories.cookie \
+    import CookieRepo
 
 from .element_article import SinglePageArticle
 from .base import BaseScraperRepo
@@ -22,10 +23,10 @@ class Meme404(Exception):
 
 class NineGagSinglePageScraperRepo(BaseScraperRepo, GetMemeRepo):
     def __init__(self, username: str, password: str,
-                 web_driver: WebDriver, cookie_usecase: CookiesUseCase,
+                 web_driver: WebDriver, cookie_repo: CookieRepo,
                  **kwargs) -> None:
         BaseScraperRepo.__init__(self, username, password, web_driver,
-                                 cookie_usecase, **kwargs)
+                                 cookie_repo, **kwargs)
 
     def get_meme_from_url(self, url: str) -> PostMeme:
         self.web_driver.get(url)
