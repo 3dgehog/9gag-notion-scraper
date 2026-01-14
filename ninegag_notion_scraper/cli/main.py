@@ -10,13 +10,13 @@ from ..env import get_envs, Environments
 from ..args import get_args, Arguments
 from ..use_cases.cookies import get_cookies
 from ..use_cases.meme import GetPostMemes, SavePostMeme
-from ..workflows.main import ScrapeNineGagToNotionAndStorageWorkflow
+from ..workflows import ScrapeNineGagToNotionAndStorageWorkflow
 from ..adapters.repositories.cookie_filestorage import FileCookiesRepo
 from ..adapters.repositories.meme_ninegag_scraper import \
     NineGagStreamScraperRepo
 from ..adapters.repositories.meme_notion import NotionSaveMeme
 from ..adapters.repositories.meme_filestorage import FileStorageRepo
-from .containers.webdriver import WebDriverContainer, select_webdriver
+from ..use_cases.webdriver import UseWebDriverContainer, select_webdriver
 from .runners import run_notion_to_local
 
 logger = logging.getLogger('app')
@@ -29,7 +29,7 @@ def main(
 ) -> None:
     """The entry point to the application"""
     cookie_repo = FileCookiesRepo()
-    with WebDriverContainer(get_webdriver()) as webdriver:
+    with UseWebDriverContainer(get_webdriver()) as webdriver:
         if args.save_notion_meme_locally:
             run_notion_to_local(args, envs, webdriver, cookie_repo)
             quit()

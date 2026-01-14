@@ -19,6 +19,7 @@ class Environments(BaseSettings):
     BROWSER: str = Field(default="firefox")
     DISCORD_WEBHOOK_URL: str = Field(default="")
 
+    @classmethod
     @field_validator("WEBDRIVER_URL")
     def validate_webdriver_url(cls, v):
         pattern = r"(^$|^https?://.+)"
@@ -26,6 +27,7 @@ class Environments(BaseSettings):
             raise ValueError("The WEBDRIVER_URL url pattern is not correct")
         return v
 
+    @classmethod
     @field_validator("LOG_LEVEL")
     def validate_log_level(cls, v):
         allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -33,6 +35,7 @@ class Environments(BaseSettings):
             raise ValueError(f"LOG_LEVEL must be one of {allowed}")
         return v
 
+    @classmethod
     @field_validator("BROWSER")
     def validate_browser(cls, v):
         allowed = {"firefox", "chrome"}
