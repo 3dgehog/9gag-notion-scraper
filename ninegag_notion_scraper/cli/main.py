@@ -9,15 +9,19 @@ from notion_client import Client as NotionClient
 from ..env import get_envs, Environments
 from ..args import get_args, Arguments
 from ..use_cases.cookies import get_cookies
-from ..use_cases.meme import GetPostMemes, SavePostMeme
+from ..use_cases.meme import GetPostMemes, SavePostMeme, GetDBMemes, \
+    GetPostMeme, UpdateMeme
 from ..workflows import ScrapeNineGagToNotionAndStorageWorkflow
+from ..workflows.run_notion_to_local import NotionToLocalWorkflow
 from ..adapters.repositories.cookie_filestorage import FileCookiesRepo
 from ..adapters.repositories.meme_ninegag_scraper import \
     NineGagStreamScraperRepo
+from ..adapters.repositories.meme_ninegag_scraper.page_single import \
+    NineGagSinglePageScraperRepo
 from ..adapters.repositories.meme_notion import NotionSaveMeme
+from ..adapters.repositories.meme_notion.get_memes import NotionGetMemes
 from ..adapters.repositories.meme_filestorage import FileStorageRepo
 from ..use_cases.webdriver import UseWebDriverContainer, select_webdriver
-from .runners import run_notion_to_local
 
 logger = logging.getLogger('app')
 
@@ -30,25 +34,43 @@ def main(
     """The entry point to the application"""
     cookie_repo = FileCookiesRepo()
     with UseWebDriverContainer(get_webdriver()) as webdriver:
-        if args.save_notion_meme_locally:
-            run_notion_to_local(args, envs, webdriver, cookie_repo)
-            quit()
+        # Initialize shared repositories
+        notion_client = NotionClient(auth=envs.NOTION_TOKEN)
+        notion_storage_repo = NotionSaveMeme(
+            notion_client, envs.NOTION_DATABASE
+        )
+        filestorage_repo = FileStorageRepo(
+            covers_path=envs.COVERS_PATH,
+            memes_path=envs.MEMES_PATH,
+            _selenium_cookies_func=lambda: get_cookies(cookie_repo)
+        )
 
-        # Initialize repositories
+        if args.save_notion_meme_locally:
+            # Run Notion to local workflow
+            notion_get = NotionGetMemes(notion_client, envs.NOTION_DATABASE)
+            ninegag = NineGagSinglePageScraperRepo(
+                envs.NINEGAG_USERNAME,
+                envs.NINEGAG_PASSWORD,
+                webdriver,
+                cookie_repo
+            )
+            workflow = NotionToLocalWorkflow(
+                notion_get=GetDBMemes(notion_get),
+                notion_update=UpdateMeme(notion_storage_repo),
+                file_storage=SavePostMeme(filestorage_repo),
+                ninegag=GetPostMeme(ninegag),
+                args=args
+            )
+            workflow.execute()
+            return
+
+        # Initialize repositories for 9GAG to Notion workflow
         ninegag_scraper_repo = NineGagStreamScraperRepo(
             envs.NINEGAG_URL,
             envs.NINEGAG_USERNAME,
             envs.NINEGAG_PASSWORD,
             webdriver,
             cookie_repo
-        )
-        notion_storage_repo = NotionSaveMeme(
-            NotionClient(auth=envs.NOTION_TOKEN), envs.NOTION_DATABASE
-        )
-        filestorage_repo = FileStorageRepo(
-            covers_path=envs.COVERS_PATH,
-            memes_path=envs.MEMES_PATH,
-            _selenium_cookies_func=lambda: get_cookies(cookie_repo)
         )
 
         # Initialize and execute the use case
