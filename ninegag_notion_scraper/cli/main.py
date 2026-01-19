@@ -22,6 +22,8 @@ from ..adapters.repositories.meme_notion import NotionSaveMeme
 from ..adapters.repositories.meme_notion.get_memes import NotionGetMemes
 from ..adapters.repositories.meme_filestorage import FileStorageRepo
 from ..use_cases.webdriver import UseWebDriverContainer, select_webdriver
+from ..use_cases.notifications import SendNotification
+from ..adapters.notifications.discord import DiscordNotificationProvider
 
 logger = logging.getLogger('app')
 
@@ -75,6 +77,9 @@ def main(
 
         # Initialize and execute the use case
         scrape_usecase = ScrapeNineGagToNotionAndStorageWorkflow(
+            send_notification=SendNotification(
+                DiscordNotificationProvider(envs.DISCORD_WEBHOOK_URL)
+            ),
             get_post_memes=GetPostMemes(ninegag_scraper_repo),
             save_to_notion=SavePostMeme(notion_storage_repo),
             save_to_filestorage=SavePostMeme(filestorage_repo),
