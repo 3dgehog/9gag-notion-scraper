@@ -29,82 +29,104 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
         """Execute the scraping workflow"""
         logger.debug("Starting to scrape memes from 9GAG")
 
-        exists_filestorage = False
-        exists_notion = False
         count_memes_saved_in_notion = 0
         count_memes_saved_in_filestorage = 0
 
         try:
             for memes in self.get_post_memes.get_memes():
-                for meme in memes:
-                    # Check if the meme is already saved in File Storage
-                    FILE_STORAGE_NAME = "File Storage"
-                    exists_file = self.save_to_filestorage.meme_exists(meme)
-                    if self.args.skip_existing and exists_file:
-                        logger.info(
-                            f"Meme ID {meme.post_id} was skipped "
-                            f"in '{FILE_STORAGE_NAME}' because it "
-                            "already exists"
-                        )
-                    elif exists_file:
-                        logger.info(f"Meme ID {meme.post_id} already "
-                                    f"exists in {FILE_STORAGE_NAME}")
-                        exists_filestorage = True
-                    else:
-                        self.save_to_filestorage.save_meme(meme)
-                        count_memes_saved_in_filestorage += 1
-
-                    # Check if the meme is already saved in Notion
-                    NOTION_STORAGE_NAME = "Notion DB"
-                    exists_notion = self.save_to_notion.meme_exists(meme)
-                    if self.args.skip_existing and exists_notion:
-                        logger.info(
-                            f"Meme ID {meme.post_id} was skipped "
-                            f"in '{NOTION_STORAGE_NAME}' because it "
-                            "already exists"
-                        )
-                    elif exists_notion:
-                        exists_notion = True
-                        logger.info(f"Meme ID {meme.post_id} already "
-                                    f"exists in {NOTION_STORAGE_NAME}")
-                    else:
-                        self.save_to_notion.save_meme(meme)
-                        count_memes_saved_in_notion += 1
-
-                    if exists_filestorage or exists_notion:
-                        match [exists_filestorage, exists_notion]:
-                            case [True, True]:
-                                logger.debug(
-                                    f"Meme ID {meme.post_id} already exists "
-                                    f"in both {FILE_STORAGE_NAME} and "
-                                    f"{NOTION_STORAGE_NAME}"
-                                )
-                            case [True, False]:
-                                logger.debug(
-                                    f"Meme ID {meme.post_id} already "
-                                    f"exists in {FILE_STORAGE_NAME}"
-                                )
-                            case [False, True]:
-                                logger.debug(
-                                    f"Meme ID {meme.post_id} already "
-                                    f"exists in {NOTION_STORAGE_NAME}"
-                                )
-                        if self.send_notification.is_setup:
-                            self.send_notification.send(
-                                message=(
-                                    "Scraping stopped: existing meme found. "
-                                    f" {count_memes_saved_in_notion} memes "
-                                    "saved in Notion and "
-                                    f"{count_memes_saved_in_filestorage} "
-                                    "memessaved in File Storage."
-                                )
-                            )
-                        # Break both inner and outer loops
-                        return
-        except Exception as e:
-            logger.error(f"An error occurred during scraping: {e}")
-            if self.send_notification.is_setup:
-                self.send_notification.send(
-                    message=f"An error occurred during scraping: {e}"
+                should_stop = self._process_meme_batch(
+                    memes,
+                    count_memes_saved_in_notion,
+                    count_memes_saved_in_filestorage
                 )
+                if should_stop:
+                    return
+        except Exception as e:
+            self._handle_error(e)
+
+    def _process_meme_batch(
+        self,
+        memes,
+        count_notion: int,
+        count_filestorage: int
+    ) -> bool:
+        """Process a batch of memes. Returns True if scraping should stop."""
+        for meme in memes:
+            exists_file = self._save_to_storage(
+                meme,
+                self.save_to_filestorage,
+                "File Storage"
+            )
+            exists_notion = self._save_to_storage(
+                meme,
+                self.save_to_notion,
+                "Notion DB"
+            )
+
+            if not exists_file:
+                count_filestorage += 1
+            if not exists_notion:
+                count_notion += 1
+
+            if exists_file or exists_notion:
+                self._log_existing_meme(meme, exists_file, exists_notion)
+                self._notify_stop(count_notion, count_filestorage)
+                return True
+
+        return False
+
+    def _save_to_storage(self, meme, save_handler, storage_name: str) -> bool:
+        """Save meme to storage. Returns True if meme already exists."""
+        exists = save_handler.meme_exists(meme)
+
+        if self.args.skip_existing and exists:
+            logger.info(
+                f"Meme ID {meme.post_id} was skipped in '{storage_name}' "
+                "because it already exists"
+            )
+            return True
+
+        if exists:
+            logger.info(
+                f"Meme ID {meme.post_id} already exists in {storage_name}")
+            return True
+
+        save_handler.save_meme(meme)
+        return False
+
+    def _log_existing_meme(self,
+                           meme, exists_file: bool,
+                           exists_notion: bool) -> None:
+        """Log information about existing meme."""
+        if exists_file and exists_notion:
+            logger.debug(
+                f"Meme ID {meme.post_id} already exists in both "
+                "File Storage and Notion DB"
+            )
+        elif exists_file:
+            logger.debug(
+                f"Meme ID {meme.post_id} already exists in File Storage")
+        elif exists_notion:
+            logger.debug(f"Meme ID {meme.post_id} already exists in Notion DB")
+
+    def _notify_stop(self, count_notion: int, count_filestorage: int) -> None:
+        """Send notification about scraping stop."""
+        if not self.send_notification.is_setup:
             return
+
+        self.send_notification.send(
+            message=(
+                "Scraping stopped: existing meme found. "
+                f"{count_notion} memes saved in Notion and "
+                f"{count_filestorage} memes saved in File Storage."
+            )
+        )
+
+    def _handle_error(self, error: Exception) -> None:
+        """Handle scraping errors."""
+        logger.error(f"An error occurred during scraping: {error}")
+
+        if self.send_notification.is_setup:
+            self.send_notification.send(
+                message=f"An error occurred during scraping: {error}"
+            )
