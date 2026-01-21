@@ -20,6 +20,15 @@ class Environments(BaseSettings):
     DISCORD_WEBHOOK_URL: str = Field(default="")
 
     @classmethod
+    @field_validator("DISCORD_WEBHOOK_URL")
+    def validate_discord_webhook_url(cls, v):
+        pattern = r"(^$|^https?://.+)"
+        if not re.match(pattern, v):
+            raise ValueError(
+                "The DISCORD_WEBHOOK_URL url pattern is not correct")
+        return v
+
+    @classmethod
     @field_validator("WEBDRIVER_URL")
     def validate_webdriver_url(cls, v):
         pattern = r"(^$|^https?://.+)"

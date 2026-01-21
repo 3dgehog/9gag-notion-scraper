@@ -89,20 +89,22 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
                                     f"Meme ID {meme.post_id} already "
                                     f"exists in {NOTION_STORAGE_NAME}"
                                 )
-                        self.send_notification.send(
-                            message=(
-                                "Scraping stopped: existing meme found. "
-                                f" {count_memes_saved_in_notion} memes saved "
-                                "in Notion and "
-                                f"{count_memes_saved_in_filestorage} memes "
-                                "saved in File Storage."
+                        if self.send_notification.is_setup:
+                            self.send_notification.send(
+                                message=(
+                                    "Scraping stopped: existing meme found. "
+                                    f" {count_memes_saved_in_notion} memes "
+                                    "saved in Notion and "
+                                    f"{count_memes_saved_in_filestorage} "
+                                    "memessaved in File Storage."
+                                )
                             )
-                        )
                         # Break both inner and outer loops
                         return
         except Exception as e:
             logger.error(f"An error occurred during scraping: {e}")
-            self.send_notification.send(
-                message=f"An error occurred during scraping: {e}"
-            )
+            if self.send_notification.is_setup:
+                self.send_notification.send(
+                    message=f"An error occurred during scraping: {e}"
+                )
             return
