@@ -116,7 +116,7 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
 
         self.send_notification.send(
             message=(
-                "Scraping stopped: existing meme found. "
+                "Notion scraper ran successfully. "
                 f"{count_notion} memes saved in Notion and "
                 f"{count_filestorage} memes saved in File Storage."
             )
