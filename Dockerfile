@@ -1,31 +1,29 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim
 
-# Set environment variables
-ENV POETRY_VERSION=1.8.2 \
-    POETRY_VIRTUALENVS_CREATE=false \
-    PYTHONUNBUFFERED=1
+# Stage 1: generate requirements.txt using uv
+FROM python:3.12-slim AS builder
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - --version $POETRY_VERSION
-
-# Add Poetry to PATH
-ENV PATH="$PATH:/root/.local/bin"
-
-# Set workdir
 WORKDIR /app
 
-# Copy only requirements to cache dependencies
-COPY pyproject.toml poetry.lock ./
+# Copy project definition and lock file
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN poetry install --no-interaction --no-ansi
+# Export pinned dependencies (no dev) to requirements.txt
+RUN uv export --no-dev --no-emit-project --frozen -o requirements.txt
+
+# Stage 2: production image
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy requirements from builder stage and install with pip
+COPY --from=builder /app/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the code
 COPY . .

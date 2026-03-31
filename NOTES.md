@@ -14,7 +14,8 @@ https://github.com/SeleniumHQ/docker-selenium
 
 
 ## RUN
-pipenv run app
+
+python -m ninegag_notion_scraper
 
 
 ## TODO
@@ -35,3 +36,9 @@ pipenv run app
 - [x] Use selenium session cookies to download content
 - [ ] Add a personal WebDAV link to notion page
 - [ ] Detected when logged out again (like page can be accessed without logging in)
+
+## Test Dockerfile 
+
+docker build -t 9gag-notion-scaper .
+
+docker run --rm --env-file .env 9gag-notion-scraper

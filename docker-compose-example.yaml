@@ -1,0 +1,32 @@
+services:
+  selenium-firefox:
+    image: selenium/standalone-firefox:4.33.0-20250525
+    ports:
+      # port for the application to use
+      # - "4444:4444"
+      # port for the VNC viewer
+      - "7900:7900"
+    shm_size: 2g
+    restart: unless-stopped
+
+  9gag-notion-scraper:
+    build:
+      context: local_repo/9gag-notion-scraper
+      dockerfile: Dockerfile
+    environment:
+      - 9GAG_URL=${URL}
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - NOTION_TOKEN=${NOTION_TOKEN}
+      - NOTION_DATABASE=${NOTION_DATABASE}
+      - COVERS_PATH=/data/memes/covers
+      - MEMES_PATH=/data/memes/memes
+      - RUN_INTERVAL_SECONDS=86400 # 1 day
+      - Log_LEVEL=DEBUG
+      - WEBDRIVER_URL=http://selenium-firefox:4444
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    depends_on:
+      - selenium-firefox
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
