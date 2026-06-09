@@ -127,7 +127,7 @@ class StreamArticle(Base):
         try:
             title = article.find_element(
                 By.CSS_SELECTOR,
-                'article > header > a').text
+                'article > header > a > h2').text
         except NoSuchElementException as error:
             logger.warning('Unable to find title in article %s',
                            article.get_attribute('outerHTML')
