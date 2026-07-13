@@ -80,6 +80,7 @@ class BaseScraperRepo:
         self._detect_and_accept_cookie_dialog()
         self._detect_and_accept_value_your_privacy_dialog()
         self._detect_and_accept_didomi_consent_dialog()
+        self._detect_and_accept_didomi_banner_notice()
 
     def _detect_and_accept_cookie_dialog(self):
         try:
@@ -140,6 +141,23 @@ class BaseScraperRepo:
             '#didomi-notice-agree-button'
         )
         logger.debug("Clicking Accept button on Didomi Consent Dialog")
+        accept_button.click()
+
+    def _detect_and_accept_didomi_banner_notice(self):
+        try:
+            dialog = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                '#didomi-notice.didomi-regular-notice'
+            )
+            logger.debug("Found Didomi Banner Notice")
+        except NoSuchElementException:
+            return
+
+        accept_button = dialog.find_element(
+            By.CSS_SELECTOR,
+            '#didomi-notice-agree-button'
+        )
+        logger.debug("Clicking Accept button on Didomi Banner Notice")
         accept_button.click()
 
     # Check if user is logged in

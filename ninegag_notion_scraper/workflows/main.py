@@ -29,27 +29,18 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
         """Execute the scraping workflow"""
         logger.debug("Starting to scrape memes from 9GAG")
 
-        count_memes_saved_in_notion = 0
-        count_memes_saved_in_filestorage = 0
+        self.count_memes_saved_in_notion = 0
+        self.count_memes_saved_in_filestorage = 0
 
         try:
             for memes in self.get_post_memes.get_memes():
-                should_stop = self._process_meme_batch(
-                    memes,
-                    count_memes_saved_in_notion,
-                    count_memes_saved_in_filestorage
-                )
+                should_stop = self._process_meme_batch(memes)
                 if should_stop:
                     return
         except Exception as e:
             self._handle_error(e)
 
-    def _process_meme_batch(
-        self,
-        memes,
-        count_notion: int,
-        count_filestorage: int
-    ) -> bool:
+    def _process_meme_batch(self, memes) -> bool:
         """Process a batch of memes. Returns True if scraping should stop."""
         for meme in memes:
             exists_file = self._save_to_storage(
@@ -64,13 +55,13 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
             )
 
             if not exists_file:
-                count_filestorage += 1
+                self.count_memes_saved_in_filestorage += 1
             if not exists_notion:
-                count_notion += 1
+                self.count_memes_saved_in_notion += 1
 
             if exists_file or exists_notion:
                 self._log_existing_meme(meme, exists_file, exists_notion)
-                self._notify_stop(count_notion, count_filestorage)
+                self._notify_stop()
                 return True
 
         return False
@@ -109,7 +100,7 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
         elif exists_notion:
             logger.debug(f"Meme ID {meme.post_id} already exists in Notion DB")
 
-    def _notify_stop(self, count_notion: int, count_filestorage: int) -> None:
+    def _notify_stop(self) -> None:
         """Send notification about scraping stop."""
         if not self.send_notification.is_setup:
             return
@@ -117,8 +108,10 @@ class ScrapeNineGagToNotionAndStorageWorkflow:
         self.send_notification.send(
             message=(
                 "Notion scraper ran successfully. "
-                f"{count_notion} memes saved in Notion and "
-                f"{count_filestorage} memes saved in File Storage."
+                f"{self.count_memes_saved_in_notion} "
+                "memes saved in Notion and "
+                f"{self.count_memes_saved_in_filestorage} memes "
+                "saved in File Storage."
             )
         )
 
