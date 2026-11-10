@@ -77,10 +77,38 @@ class BaseScraperRepo:
 
     def _detect_and_handle_dialogs(self):
         logger.debug("Detecting and handling dialogs if any")
+        self._detect_and_accept_consent_wall_dialog()
         self._detect_and_accept_cookie_dialog()
         self._detect_and_accept_value_your_privacy_dialog()
         self._detect_and_accept_didomi_consent_dialog()
         self._detect_and_accept_didomi_banner_notice()
+
+    def _detect_and_accept_consent_wall_dialog(self):
+        try:
+            dialog = self.web_driver.find_element(
+                By.CSS_SELECTOR,
+                'div.consent-wall[role="dialog"]'
+            )
+            logger.debug("Found 9GAG Consent Wall Dialog")
+        except NoSuchElementException:
+            return
+
+        try:
+            accept_button = dialog.find_element(
+                By.CSS_SELECTOR,
+                'section.consent-wall__choice:first-of-type'
+                ' button.consent-wall__btn'
+            )
+        except NoSuchElementException:
+            logger.error(
+                "Accept button not found in 9GAG Consent Wall Dialog")
+            raise ScraperNotSetup(
+                "Accept button not found in 9GAG Consent Wall Dialog")
+
+        logger.debug("Clicking 'Accept & continue with ads' on "
+                     "9GAG Consent Wall Dialog")
+        accept_button.click()
+        time.sleep(self.sleep)
 
     def _detect_and_accept_cookie_dialog(self):
         try:
