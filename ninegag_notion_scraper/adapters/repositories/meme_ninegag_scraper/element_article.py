@@ -40,17 +40,18 @@ class Base:
 
         try:
             cover_photo = article.find_element(
-                By.CSS_SELECTOR, '.post-container * > picture > img'
-            ).get_attribute('src')
-        except NoSuchElementException:
-            pass
-
-        try:
-            cover_photo = article.find_element(
-                By.CSS_SELECTOR, '.post-container * > video'
+                By.CSS_SELECTOR, '.post-view video'
             ).get_attribute('poster')
         except NoSuchElementException:
             pass
+
+        if not cover_photo:
+            try:
+                cover_photo = article.find_element(
+                    By.CSS_SELECTOR, '.post-view img'
+                ).get_attribute('src')
+            except NoSuchElementException:
+                pass
 
         if not cover_photo:
             logger.warning("Unable to find cover photo\n %s",
@@ -59,11 +60,9 @@ class Base:
             raise NoSuchElementException("Unable to find cover photo")
 
         return cover_photo
-
     @staticmethod
     def get_title_from_article(article: WebElement) -> str:
         raise NotImplementedError
-
     @staticmethod
     def get_file_url_from_article(article: WebElement) -> str:
         try:
@@ -112,9 +111,9 @@ class StreamArticle(Base):
         try:
             url = article.find_element(
                 By.CSS_SELECTOR,
-                'article > header > a').get_attribute('href')
+                'article header a.post-title-link').get_attribute('href')
         except NoSuchElementException as error:
-            logger.warning('Unable to find title in article %s',
+            logger.warning('Unable to find url in article %s',
                            article.get_attribute('outerHTML')
                            )
             raise error
@@ -127,7 +126,7 @@ class StreamArticle(Base):
         try:
             title = article.find_element(
                 By.CSS_SELECTOR,
-                'article > header > a > h2').text
+                'article header a.post-title-link h2').text
         except NoSuchElementException as error:
             logger.warning('Unable to find title in article %s',
                            article.get_attribute('outerHTML')
@@ -151,3 +150,4 @@ class SinglePageArticle(Base):
             raise error
 
         return title
+
